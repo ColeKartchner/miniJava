@@ -4,7 +4,7 @@ import java.util.List;
 
 public record Print(Expression expressions) implements Expression{
     @Override
-    public List<Object> children() {
+    public List<? extends Node> children() {
         return List.of(expressions);
     }
 

@@ -8,7 +8,7 @@ public record Assignment(VariableAccess left, Cast right) implements Expression{
     }
 
     @Override
-    public List<Object> children() {
+    public List<? extends Node> children() {
         return List.of(left, right);
     }
 }

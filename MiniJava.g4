@@ -1,7 +1,8 @@
 grammar MiniJava;
 
     @parser::header {
-import edu.westminstercollege.cmpt355.minijava.node.*;    }
+        import edu.westminstercollege.cmpt355.minijava.node.*;
+    }
 
 goal
 returns [Block n]
@@ -27,7 +28,7 @@ returns [Statement n]
    : ';' {
         $n = new EmptyStatement();
    }
-   | '{' statement* '}' {
+   | '{' mbod += statement* '}' {
         var statements = new ArrayList<Statement>();
         for (var mbods : $mbod)
             statements.add(mbods.n);
@@ -37,25 +38,25 @@ returns [Statement n]
        $n = new VarDeclaration(TypeNode, VarDeclarationInit);
    }
    | expression ';'{
-       $n = $expression.n;
+       $n = new ExpressionStatement(Expression);
    }
    ;
 
 
 // type followed by a comma-separated list of "items", each being just a name or a name = value
 variableDeclaration
-returns [VariableDeclaration n]
+returns [VarDeclarations n]
    : type dec+=variableDeclarationItem (',' dec+=variableDeclarationItem)* ';' {
-       var declarations = new ArrayList<variableDeclarationItem>();
+       var declarations = new ArrayList<VarDeclarations>();
                for (var dec : $dec)
                    declarations.add(dec.n);
-               $n = new Input(declarations);
+               $n = new VarDeclaration(declarations);
    }
    ;
 
 
 variableDeclarationItem
-returns [VariableDeclarationItem n]
+returns [VarDeclaration n]
    : NAME {
        $n = new Assignment($NAME.text);
    }
@@ -81,29 +82,29 @@ returns [Expression n]
        $n = new VariableAccess($NAME.text);
    }
    | '(' expression ')' {
-       $n = $expression.n;
+       $n = ExpressionStatement(Expression);
    }
    | expression ('++' | '--') {
-       $n = $expression.n;
+       $n = ExpressionStatement(Expression);
    }
    | ('++' | '--' | '+' | '-') expression {
-       $n = $expression.n;
+       $n = ExpressionStatement(Expression);
    }
    | '(' type ')' expression
    | expression ('*' | '/' | '*') expression{
-       $n = $expression.n;
+       $n = ExpressionStatement(Expression);
    }
    | expression ('+' | '-') expression {
-       $n = $expression.n;
+       $n = ExpressionStatement(Expression);
    }
    | <assoc=right> expression '=' expression {
-       $n = $expression.n;
+       $n = ExpressionStatement(expression);
    }
    ;
 
 
 type
-returns [Type n]
+returns [String n]
    : 'int' {
        $n = "int";
    }
@@ -117,7 +118,7 @@ returns [Type n]
        $n = "String";
    }
    | NAME {
-       $n = new VariableAcces($NAME.text);
+       $n = new String($NAME.text);
    }
    ;
 
@@ -140,7 +141,7 @@ RESERVED_WORD
 
 // letters, numbers, dollar signs '$', underscores'_', but not starting with a digit
 NAME
-   : [a-zA-z_$] [a-zA-z_$0-9]*
+   : [a-zA-Z_$] [a-zA-Z_$0-9]*
    ;
 
 

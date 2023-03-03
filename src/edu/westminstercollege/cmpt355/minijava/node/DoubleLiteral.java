@@ -4,7 +4,7 @@ import java.util.List;
 
 public record DoubleLiteral(String text) implements Expression{
     @Override
-    public List<Object> children() {
+    public List<? extends Node> children() {
         return List.of();
     }
 

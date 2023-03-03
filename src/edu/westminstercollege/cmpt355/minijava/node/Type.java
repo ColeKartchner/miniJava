@@ -2,7 +2,7 @@ package edu.westminstercollege.cmpt355.minijava.node;
 
 import java.util.List;
 
-public record Type(String text) {
+public record Type(String text) implements Node{
 
     public String getNodeDescription() {
         return String.format("Type [Type: %s]", text);

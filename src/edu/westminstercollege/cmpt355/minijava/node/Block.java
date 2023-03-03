@@ -4,7 +4,7 @@ import java.util.List;
 
 public record Block(List<Statement> statements) implements Statement{
     @Override
-    public List<Object> children() {
+    public List<? extends Node> children() {
         return statements;
     }
 

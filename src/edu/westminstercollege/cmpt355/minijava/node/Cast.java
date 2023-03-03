@@ -4,7 +4,7 @@ import java.util.List;
 
 public record Cast(TypeNode left, Expression right) implements Expression{
     @Override
-    public List<Object> children() {
+    public List<? extends Node> children() {
         return List.of(left, right);
     }
 

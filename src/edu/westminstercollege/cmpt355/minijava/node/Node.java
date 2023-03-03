@@ -13,5 +13,5 @@ public /*sealed*/ interface Node
         return fullName;
     }
 
-    List<Object> children();
+    List<? extends Node> children();
 }
