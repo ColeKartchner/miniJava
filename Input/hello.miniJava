@@ -1,1 +1,9 @@
-x = 1 + 2 * 3; // make sure the precedence is right!
+// This is a line comment
+int x = 25;
+double z = 5.0, peanut, ampersand = z;
+/* This is a
+block comment
+*/
+print("\n\tx = ", x);
+++x;
+peanut = (int) (++x / (z + 5) - ampersand * ampersand);

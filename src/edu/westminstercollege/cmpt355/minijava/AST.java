@@ -38,15 +38,18 @@ public class AST {
                 out.printf("%3s", b ? "│ " : "");
             out.printf(" %s\n", lines[i]);
         }
-
-        var it = root.children().iterator();
-        while (it.hasNext()) {
-            var childLevels = new ArrayList<>(levels);
-            var child = it.next();
-            childLevels.add(it.hasNext());
-            print(child, out, childLevels);
-        }
+try {
+    var it = root.children().iterator();
+    while (it.hasNext()) {
+        var childLevels = new ArrayList<>(levels);
+        var child = it.next();
+        childLevels.add(it.hasNext());
+        print(child, out, childLevels);
     }
+}catch(Exception e) {
+}
+    }
+
 
     public static <E extends Exception> void preOrder(Node root, NodeConsumer<E> c) throws E {
         c.consume(root);
