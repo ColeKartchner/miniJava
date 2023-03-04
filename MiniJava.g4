@@ -2,6 +2,7 @@ grammar MiniJava;
 
     @parser::header {
         import edu.westminstercollege.cmpt355.minijava.node.*;
+        import java.util.Optional;
     }
 
 goal
@@ -35,10 +36,10 @@ returns [Statement n]
         $n = new Block(statements);
    }
    | variableDeclaration {
-       $n = new VarDeclaration(TypeNode, VarDeclarationInit);
+       $n = $variableDeclaration.n; //?
    }
    | expression ';'{
-       $n = new ExpressionStatement(Expression);
+       $n = new ExpressionStatement($expression.n);
    }
    ;
 
@@ -47,10 +48,11 @@ returns [Statement n]
 variableDeclaration
 returns [VarDeclarations n]
    : type dec+=variableDeclarationItem (',' dec+=variableDeclarationItem)* ';' {
-       var declarations = new ArrayList<VarDeclarations>();
+       var declarations = new ArrayList<VarDeclaration>();
                for (var dec : $dec)
                    declarations.add(dec.n);
-               $n = new VarDeclaration(declarations);
+               TypeNode x = new TypeNode($type.n);
+               $n = new VarDeclarations(x, declarations);
    }
    ;
 
@@ -58,10 +60,12 @@ returns [VarDeclarations n]
 variableDeclarationItem
 returns [VarDeclaration n]
    : NAME {
-       $n = new Assignment($NAME.text);
+       Optional<Expression> staticOptional = Optional.empty();
+       $n = new VarDeclaration(staticOptional, $NAME.text); //?
    }
    | NAME '=' expression {
-       $n = new Assignment($NAME.text, $expression.n);
+        Optional<Expression> staticOptional = Optional.of($expression.n);
+       $n = new VarDeclaration(staticOptional, $NAME.text);
    }
    ;
 
@@ -82,23 +86,23 @@ returns [Expression n]
        $n = new VariableAccess($NAME.text);
    }
    | '(' expression ')' {
-       $n = ExpressionStatement(Expression);
+       $n = $expression.n;
    }
    | expression ('++' | '--') {
-       $n = ExpressionStatement(Expression);
+       $n = $expression.n;
    }
    | ('++' | '--' | '+' | '-') expression {
-       $n = ExpressionStatement(Expression);
+       $n = $expression.n;
    }
    | '(' type ')' expression
    | expression ('*' | '/' | '*') expression{
-       $n = ExpressionStatement(Expression);
+       $n = $expression.n;
    }
    | expression ('+' | '-') expression {
-       $n = ExpressionStatement(Expression);
+       $n = $expression.n;
    }
    | <assoc=right> expression '=' expression {
-       $n = ExpressionStatement(expression);
+       $n = $expression.n;
    }
    ;
 
