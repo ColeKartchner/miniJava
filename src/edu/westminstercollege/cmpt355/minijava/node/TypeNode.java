@@ -1,8 +1,10 @@
 package edu.westminstercollege.cmpt355.minijava.node;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import java.util.List;
 
-public record TypeNode(String type) implements Node {
+public record TypeNode(ParserRuleContext ctx, String type) implements Node {
 
     @Override
     public String getNodeDescription() {

@@ -1,8 +1,10 @@
 package edu.westminstercollege.cmpt355.minijava.node;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import java.util.List;
 
-public record BinaryOp(Expression left, Expression right, String op) implements Expression {
+public record BinaryOp(ParserRuleContext ctx, Expression left, Expression right, String op) implements Expression {
 
     @Override
     public String getNodeDescription() {

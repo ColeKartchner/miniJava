@@ -13,5 +13,6 @@ public sealed interface Node
         return fullName;
     }
 
+    // ParserRuleContext ctx();
     List<? extends Node> children();
 }
