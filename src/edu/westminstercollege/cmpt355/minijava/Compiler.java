@@ -66,25 +66,30 @@ public class Compiler {
     }
 
     private void resolveSymbols(Block block) throws SyntaxException {
-        AST.preOrder(block, node -> {
+        AST.postOrder(block, node -> {
             switch (node) {
                 // This is if the variable already exists
                 case VariableAccess(ParserRuleContext ctx, String name) -> {
                     if (symbols.findVariable(name).isEmpty())
-                        throw new SyntaxException(node, String.format("'%s' hasn't been declared yet", name));
+                        throw new SyntaxException(node, String.format("Variable '%s' has already been declared. Please use a different variable name.", name));
                 }
                 // This is if the variable is trying to be decalred twice
                 case DeclarationItem(ParserRuleContext ctx, String name, Optional<Expression> initializer) -> {
                     if(symbols.findVariable(name).isPresent()){
-                        throw new SyntaxException(node, String.format("'%s' is already declared", name));
+                        throw new SyntaxException(node, String.format("Variable '%s' is undefined. Please declare it before accessing it.", name));
                     }
                     else {
                         symbols.registerVariable(name);
                     }
                 }
                 case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
-                    if (symbols.findVariable(target)) {
-
+                    if (target instanceof VariableAccess expr) {
+                        if (symbols.findVariable(expr.variableName()).isEmpty()) {
+                            throw new SyntaxException(node, String.format(" Invalid assignment. Variable ('%s') must be declared before being assigned to.", expr.variableName()));
+                        }
+                    }
+                    else {
+                        throw new SyntaxException(node, String.format(" Invalid assignment. The left-hand side ('%s') should be a variable", ctx.getChild(0).getText()));
                     }
                 }
                 default -> {}

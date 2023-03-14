@@ -17,7 +17,7 @@ returns [Block n]
 
 
 methodBody
-returns [Statement n]
+returns [Block n]
    : (stmts+=statement)* {
        var statements = new ArrayList<Statement>();
        for (var stmt : $stmts)
@@ -112,7 +112,7 @@ returns [Expression n]
        $n = $expression.n;
    }
    | l=expression op=('++' | '--') {
-       $n = new PostIncrement($l.n, $op.text);
+       $n = new PostIncrement($ctx, $l.n, $op.text);
    }
    | op=('++' | '--' | '+' | '-') expression {
        if ($op.text.equals("++") || $op.text.equals("--"))

@@ -1,9 +1,12 @@
 package edu.westminstercollege.cmpt355.minijava.node;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import java.util.List;
 
 public sealed interface Node
     permits Expression, Statement, TypeNode, DeclarationItem {
+    ParserRuleContext ctx();
 
     default String getNodeDescription() {
         String fullName = getClass().getSimpleName();
@@ -13,6 +16,5 @@ public sealed interface Node
         return fullName;
     }
 
-    // ParserRuleContext ctx();
     List<? extends Node> children();
 }
