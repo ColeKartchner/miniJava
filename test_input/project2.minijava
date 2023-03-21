@@ -1,2 +1,1 @@
-double eip;
-eip + 1 = 99;
+eip = 0;

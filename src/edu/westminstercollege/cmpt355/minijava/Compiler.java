@@ -18,6 +18,7 @@ public class Compiler {
     private PrintWriter out;
     private final Block block;
     private final String className;
+    private final Typechecker typechecker = new Typechecker();
 
     public Compiler(Block block, String className) {
         this.block = block;
@@ -68,15 +69,17 @@ public class Compiler {
     private void resolveSymbols(Block block) throws SyntaxException {
         AST.postOrder(block, node -> {
             switch (node) {
-                // This is if the variable already exists
+                // This is if the variable doesn't exist
                 case VariableAccess(ParserRuleContext ctx, String name) -> {
-                    if (symbols.findVariable(name).isEmpty())
-                        throw new SyntaxException(node, String.format("Variable '%s' has already been declared. Please use a different variable name.", name));
+                    var variableName = symbols.findVariable(name);
+                    if (variableName.isEmpty())
+                        throw new SyntaxException(node, String.format("Variable '%s' is undefined. Please declare it before accessing it.", name));
+                    //System.out.println(variableName.get().getType().toString() + " " + variableName.get().getName());
                 }
                 // This is if the variable is trying to be decalred twice
                 case DeclarationItem(ParserRuleContext ctx, String name, Optional<Expression> initializer) -> {
                     if(symbols.findVariable(name).isPresent()){
-                        throw new SyntaxException(node, String.format("Variable '%s' is undefined. Please declare it before accessing it.", name));
+                        throw new SyntaxException(node, String.format("Variable '%s' has already been declared. Please use a different variable name.", name));
                     }
                     else {
                         symbols.registerVariable(name);
@@ -85,7 +88,7 @@ public class Compiler {
                 case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
                     if (target instanceof VariableAccess expr) {
                         if (symbols.findVariable(expr.variableName()).isEmpty()) {
-                            throw new SyntaxException(node, String.format(" Invalid assignment. Variable ('%s') must be declared before being assigned to.", expr.variableName()));
+                            throw new SyntaxException(node, String.format("Invalid assignment. Variable ('%s') must be declared before being assigned to.", expr.variableName()));
                         }
                     }
                     else {
