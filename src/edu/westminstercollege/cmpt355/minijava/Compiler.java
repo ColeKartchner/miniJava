@@ -30,6 +30,8 @@ public class Compiler {
         try (var out = new PrintWriter(Files.newBufferedWriter(asmFilePath))) {
             this.out = out;
             resolveSymbols(block);
+            Typechecker typechecker = new Typechecker();
+            typechecker.typecheck(symbols, block);
 
             out.printf(".class public %s\n", className);
             out.printf(".super java/lang/Object\n");
