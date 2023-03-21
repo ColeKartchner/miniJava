@@ -115,16 +115,16 @@ public class Typechecker {
     public Type getType(SymbolTable symbols, Expression expr) {
         switch(expr) {
             case IntLiteral(ParserRuleContext ctx, String text) -> {
-
+                return PrimitiveType.Int;
             }
             case DoubleLiteral(ParserRuleContext ctx, String text) -> {
-
+                return PrimitiveType.Double;
             }
             case BooleanLiteral(ParserRuleContext ctx, String text) -> {
-
+                return PrimitiveType.Boolean;
             }
             case StringLiteral(ParserRuleContext ctx, String text) -> {
-
+                return new ClassType("String");
             }
             case VariableAccess(ParserRuleContext ctx, String variableName) -> {
 
