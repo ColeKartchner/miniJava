@@ -29,10 +29,10 @@ public class Typechecker {
                     throw new SyntaxException(node, "A cast cannot be void");
                 } else if (!castType.equals(stringType) && !(castType instanceof PrimitiveType)) {
                     throw new SyntaxException(node, castType + " is not a valid cast type.");
-                // Catches the types that cannot be cast to a string
+                    // Catches the types that cannot be cast to a string
                 } else if ((castType instanceof PrimitiveType) && expressionType.equals(stringType)) {
                     throw new SyntaxException(node, castType + " cannot be cast to String");
-                // ints/doubles cannot be cast to boolean
+                    // ints/doubles cannot be cast to boolean
                 } else if ((castType.equals(PrimitiveType.Int) || castType.equals(PrimitiveType.Double))
                         && expressionType.equals(PrimitiveType.Boolean)) {
                     throw new SyntaxException(node, castType + " cannot be cast to " + expressionType);
@@ -87,30 +87,140 @@ public class Typechecker {
                 // Insert code that throws a SyntaxException if leftType and rightType
                 // don't make sense for this operation (will depend on the value of op!)
 
-            }
-            case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
-                typecheck(symbols, target);
-                typecheck(symbols, value);
-                Type leftType = getType(symbols, target),
-                        rightType = getType(symbols, value);
-
-                if (!leftType.equals(rightType)
-                        && (!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int))) {
-                    throw new SyntaxException(node, String.format("Error in assignment. Type: %s cannot be assigned to Type: %s", leftType, rightType));
+                //addition
+                //int left
+                if(leftType.equals(PrimitiveType.Int) && rightType.equals(VoidType.Instance) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
                 }
-            }
-            case Negate(ParserRuleContext ctx, Expression expression) -> {
+                else if(leftType.equals(PrimitiveType.Int) && rightType.equals(ClassType.class) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add int and class types."));
+                }
+                else if(leftType.equals(PrimitiveType.Int) && rightType.equals(PrimitiveType.Boolean) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add boolean type."));
+                }
+                //double left
+                else if(leftType.equals(PrimitiveType.Double) && rightType.equals(VoidType.Instance) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(PrimitiveType.Double) && rightType.equals(ClassType.class) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add double and class types."));
+                }
+                else if(leftType.equals(PrimitiveType.Double) && rightType.equals(PrimitiveType.Boolean) && op.equals("+")) {
+                    throw new SyntaxException(node, String.format("Cannot add boolean type."));
+                }
+                //Class left
+                else if(leftType.equals(ClassType.class) && rightType.equals(VoidType.Instance) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(ClassType.class) && rightType.equals(PrimitiveType.Boolean) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(VoidType.Instance) && rightType.equals(PrimitiveType.Int) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(VoidType.Instance) && rightType.equals(PrimitiveType.Double) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(VoidType.Instance) && rightType.equals(PrimitiveType.Boolean) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void or Boolean type."));
+                }
+                else if(leftType.equals(VoidType.Instance) && rightType.equals(VoidType.Instance) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(VoidType.Instance) && rightType.equals(ClassType.class) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                //Boolean left
+                else if(leftType.equals(PrimitiveType.Boolean) && rightType.equals(VoidType.Instance) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add Void type."));
+                }
+                else if(leftType.equals(PrimitiveType.Boolean) && rightType.equals(ClassType.class) && op.equals("+")){
+                    throw new SyntaxException(node, String.format("Cannot add double and class types."));
+                }
+                else if(leftType.equals(PrimitiveType.Boolean) && rightType.equals(PrimitiveType.Boolean) && op.equals("+")) {
+                    throw new SyntaxException(node, String.format("Cannot add boolean type."));
+                }
 
-            }
-            case PreIncrement(ParserRuleContext ctx, Expression target, String op) -> {
+                //subtraction
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Subtract cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Subtract cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Subtract cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Subtract cannot be invoked on a non-numeric data type"));
+                }
 
-            }
-            case PostIncrement(ParserRuleContext ctx, Expression target, String op) -> {
+                //multiplication
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
+                }
 
+                //division
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
+                }
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                    throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
+                }
+
+                case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
+                    typecheck(symbols, target);
+                    typecheck(symbols, value);
+                    Type leftType = getType(symbols, target),
+                            rightType = getType(symbols, value);
+
+                    if (!leftType.equals(rightType)
+                            && (!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int))) {
+                        throw new SyntaxException(node, String.format("Error in assignment. Type: %s cannot be assigned to Type: %s", leftType, rightType));
+                    }
+                }
+                case Negate(ParserRuleContext ctx, Expression expression) -> {
+                    typecheck(symbols, expression);
+                    Type expressionType = getType(symbols, expression);
+
+                    if(!expressionType.equals(PrimitiveType.Double) || !expressionType.equals(PrimitiveType.Int)){
+                        throw new SyntaxException(node, String.format("Cannot negate a nonnumerical data type"));
+                    }
+                }
+                case PreIncrement(ParserRuleContext ctx, Expression target, String op) -> {
+                    typecheck(symbols, target);
+                    Type targetType = getType(symbols, target);
+
+                    if(!targetType.equals(PrimitiveType.Double) || !targetType.equals(PrimitiveType.Int)){
+                        throw new SyntaxException(node, String.format("PreIncrement cannot be invoked on a non-numeric data type"));
+                    }
+                }
+                case PostIncrement(ParserRuleContext ctx, Expression target, String op) -> {
+                    typecheck(symbols, target);
+                    Type targetType = getType(symbols, target);
+
+                    if(!targetType.equals(PrimitiveType.Double) || !targetType.equals(PrimitiveType.Int)){
+                        throw new SyntaxException(node, String.format("PostIncrement cannot be invoked on a non-numeric data type"));
+                    }
+                }
+                default -> {}
             }
-            default -> {}
         }
-    }
 
     public Type getType(SymbolTable symbols, Expression expr) {
         switch(expr) {
