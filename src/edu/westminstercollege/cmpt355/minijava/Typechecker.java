@@ -156,30 +156,30 @@ public class Typechecker {
                 }
 
                 //multiplication
-                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("*")){
                     throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
                 }
-                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("*")){
                     throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
                 }
-                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("*")){
                     throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
                 }
-                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("*")){
                     throw new SyntaxException(node, String.format("Multiply cannot be invoked on a non-numeric data type"));
                 }
 
                 //division
-                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Double) && op.equals("/")){
                     throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
                 }
-                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Double) || !rightType.equals(PrimitiveType.Int) && op.equals("/")){
                     throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
                 }
-                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Int) && op.equals("/")){
                     throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
                 }
-                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("-")){
+                if(!leftType.equals(PrimitiveType.Int) || !rightType.equals(PrimitiveType.Double) && op.equals("/")){
                     throw new SyntaxException(node, String.format("Divide cannot be invoked on a non-numeric data type"));
                 }
 
