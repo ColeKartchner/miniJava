@@ -1,5 +1,4 @@
 package edu.westminstercollege.cmpt355.minijava;
-
 import edu.westminstercollege.cmpt355.minijava.node.Block;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;

@@ -78,7 +78,7 @@
                  $n = new TypeNode($ctx, PrimitiveType.Double);
             }
        | 'boolean' {
-                    $n = new TypeNode($ctx, PrimitiveType.Double);
+                    $n = new TypeNode($ctx, PrimitiveType.Boolean);
                }
        | NAME {
                $n = new TypeNode($ctx, new ClassType($NAME.text));

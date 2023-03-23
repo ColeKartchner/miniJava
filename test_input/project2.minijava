@@ -1,1 +1,2 @@
-5; // int
+boolean z;
+z = true; // boolean
