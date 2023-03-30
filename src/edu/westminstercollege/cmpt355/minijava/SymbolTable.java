@@ -7,13 +7,13 @@ import java.util.Optional;
 public class SymbolTable {
 
     private Map<String, Variable> variables = new HashMap<>();
-    private int variableIndex = 1;
+    private int variableIndex = 0;
+    private int index = 0;
 
     public Variable registerVariable(String name) {
         Variable v = variables.get(name);
         if (v == null) {
-            v = new Variable(name, variableIndex);
-            variableIndex += 2;
+            v = new Variable(name, index);
             variables.put(name, v);
         }
 
@@ -24,7 +24,11 @@ public class SymbolTable {
         return Optional.ofNullable(variables.get(name));
     }
 
+    public int allocateLocalVariable(int size) {
+        return index += size;
+    }
+
     public int getVariableCount() {
-        return variables.size();
+        return variableIndex;
     }
 }

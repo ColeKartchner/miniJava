@@ -53,14 +53,14 @@ public class Compiler {
                     """, className);
             out.printf(".method public static main([Ljava/lang/String;)V\n");
             out.printf(".limit stack 100\n");
-            out.printf(".limit locals 1\n");
-            out.printf(".limit locals %d\n", symbols.getVariableCount() * 2 + 1); // + 1 because of args
+            symbols.allocateLocalVariable(1);
+            out.printf(".limit locals %d\n", symbols.getVariableCount());
             out.println();
 
             // Generate code for program here 🙂
             // Generate code for each statement of the program
-            //for (var statement : program.statements()) {
-            //    generateCode(statement);
+            // for (var statement : program.statements()) {
+            //   generateCode(statement);
             //}
 
             out.printf("return\n");
@@ -102,6 +102,158 @@ public class Compiler {
         });
     }
 
+    private void generateCode(PrintWriter out, SymbolTable symbols, Node node) throws SyntaxException {
+        switch (node) {
+            case EmptyStatement(ParserRuleContext ctx) -> {}
+
+            case Block(ParserRuleContext ctx, List<Statement> statements) -> {
+                for (var statement : statements) {
+                    out.printf("\n.line %d\n", statement.ctx().getStart().getLine());
+                    generateCode(out, symbols, statement);
+                }
+            }
+            case ExpressionStatement(ParserRuleContext ctx, Expression expression) -> {
+                generateCode(out, symbols, expression);
+                Type exprType = typechecker.getType(symbols, expression);
+                if (exprType.equals(VoidType.Instance)){}
+                else if (exprType.equals(PrimitiveType.Double))
+                    out.printf("pop2\n");
+                else if (exprType.equals(PrimitiveType.Int) || exprType.equals(PrimitiveType.Boolean))
+                    out.printf("pop\n");
+            }
+            case DoubleLiteral(ParserRuleContext ctx, String text) -> {
+                out.printf("ldc2_w %f\n", Double.parseDouble(text));
+            }
+            case IntLiteral(ParserRuleContext ctx, String text) -> {
+                out.printf("ldc %d\n", Integer.parseInt(text));
+            }
+            case BooleanLiteral(ParserRuleContext ctx, String text) -> {
+                if (text.equals("true"))
+                    out.printf("iconst_1\n");
+                else
+                    out.printf("iconst_0\n");
+            }
+            case StringLiteral(ParserRuleContext ctx1, String text) -> {
+                out.printf("ldc %s\n", text);
+            }
+            case VariableDeclarations(ParserRuleContext ctx, TypeNode type, List<DeclarationItem> items) -> {
+                for(var item : items){
+                    generateCode(out, symbols, item);
+                }
+            }
+            case DeclarationItem(ParserRuleContext ctx, String name, Optional<Expression> initializer) -> {
+                if(initializer.isPresent()) {
+                    generateCode(out, symbols, initializer.get());
+                    Variable var = symbols.findVariable(name).get();
+
+                    Type varType = var.getType();
+                    Type exprType = typechecker.getType(symbols, initializer.get());
+                    var stringType = new ClassType("String");
+                    if(varType.equals(PrimitiveType.Int) || varType.equals(PrimitiveType.Boolean)) {
+                        out.printf("istore %d\n", var.getIndex());
+                    }
+                    else if(varType.equals(PrimitiveType.Double) && exprType.equals(PrimitiveType.Int)){
+                        out.printf("i2d\n");
+                        out.printf("dstore %d\n", var.getIndex());
+                    }
+                    else if(varType.equals(stringType)){
+                        out.printf("astore %d\n", var.getIndex());
+                    }
+                    else {
+                        out.printf("dstore %d\n", var.getIndex());
+                    }
+
+                }
+            }
+            case Print(ParserRuleContext ctx, List<Expression> arguments) -> {
+                String printlnArg = "";
+                var stringType = new ClassType("String");
+                Type exprType;
+                for (var expression : arguments) {
+                    out.printf("getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+                    generateCode(out, symbols, expression);
+                    exprType = typechecker.getType(symbols, expression);
+                    if (exprType.equals(PrimitiveType.Int))
+                        printlnArg = "I";
+                    else if (exprType.equals(PrimitiveType.Double))
+                        printlnArg = "D";
+                    else if (exprType.equals(PrimitiveType.Boolean))
+                        printlnArg = "Z";
+                    else if (exprType.equals(stringType))
+                        printlnArg = "Ljava/lang/String;";
+                    else
+                        throw new SyntaxException("Print argument Unimplemented");
+                    out.printf(String.format("invokevirtual java/io/PrintStream/println(%s)V\n", printlnArg));
+                }
+            }
+            case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
+                Variable var = symbols.findVariable(((VariableAccess)target).variableName()).get();
+                Type exprType = typechecker.getType(symbols, target);
+                Type assigType = typechecker.getType(symbols, value);
+
+                generateCode(out, symbols, value);
+                var stringType = new ClassType("String");
+                if (exprType.equals(PrimitiveType.Double) && assigType.equals(PrimitiveType.Int)) {
+                    out.printf("i2d\n");
+                    out.printf("dup2\n");
+                    out.printf("dstore_%d\n", var.getIndex());
+                }
+                else if (exprType.equals(PrimitiveType.Int) || exprType.equals(PrimitiveType.Boolean)){
+                    out.printf("dup\n");
+                    out.printf("istore %d\n", var.getIndex());
+                }
+                else if (exprType.equals(stringType)){
+                    out.printf("dup\n");
+                    out.printf("astore %d\n", var.getIndex());
+                }
+                else{
+                    out.printf("dup2\n");
+                    out.printf("dstore %d\n", var.getIndex());
+                }
+            }
+            case VariableAccess(ParserRuleContext ctx, String variableName) -> {
+                Variable var = symbols.findVariable(variableName).get();
+                var stringType = new ClassType("String");
+                if(var.getType().equals(PrimitiveType.Double)){
+                    out.printf("dload %d\n", var.getIndex());
+                }
+                else if (var.getType().equals(stringType)){
+                    out.printf("aload %d\n", var.getIndex());
+                }
+                else
+                    out.printf("iload %d\n", var.getIndex());
+            }
+            case BinaryOp(ParserRuleContext ctx, Expression left, Expression right, String op) -> {
+                int numberOfInts = 0;
+                generateCode(out, symbols, left);
+
+                var leftType = typechecker.getType(symbols, left);
+                if (leftType.equals(PrimitiveType.Int)) {
+                    out.println("i2d");
+                    numberOfInts++;
+                }
+                generateCode(out, symbols, right);
+                var rightType = typechecker.getType(symbols, right);
+                if (rightType.equals(PrimitiveType.Int)) {
+                    out.println("i2d");
+                    numberOfInts++;
+                }
+
+                switch (op) {
+                    case "+" -> out.println("dadd");
+                    case "-" -> out.println("dsub");
+                    case "*" -> out.println("dmul");
+                    case "/" -> out.println("ddiv");
+                    case "%" -> out.println("drem");
+                }
+                if (numberOfInts == 2)
+                    out.println("d2i");
+            }
+            default -> {
+                throw new SyntaxException("Unimplemented");
+            }
+        }
+    }
 
     /*
     private void generateCode(Statement statement) {
