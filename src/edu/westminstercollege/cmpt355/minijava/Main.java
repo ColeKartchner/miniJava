@@ -24,15 +24,13 @@ public class Main {
 
         AST.checkForNulls(goal); // for debugging — throws an exception if AST contains any null nodes
 
-
-
         try {
             var compiler = new Compiler(goal, CLASS_NAME);
-            compiler.compile(Path.of("test_compiled"));
+            compiler.compile(Path.of("test_output"));
 
             jasmin.Main.main(new String[]{
-                    "-d", "out/test_compiled",
-                    String.format("test_compiled/%s.minijava", CLASS_NAME)
+                    "-d", "out/test_output",
+                    String.format("test_output/%s.j", CLASS_NAME)
             });
         }
         catch (SyntaxException ex) {
@@ -51,6 +49,7 @@ public class Main {
             System.out.println("——— End of output ———");
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException ex) {
             System.err.println("Unable to execute newly-compiled program: class or method not found!");
+            ex.printStackTrace();
         } catch (InvocationTargetException ex) {
             // An exception was thrown by the compiled program (not a compiler problem 🙂)
             ex.getTargetException().printStackTrace();

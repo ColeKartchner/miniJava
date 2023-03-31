@@ -59,9 +59,7 @@ public class Compiler {
 
             // Generate code for program here 🙂
             // Generate code for each statement of the program
-            // for (var statement : program.statements()) {
-            //   generateCode(statement);
-            //}
+            generateCode(out, symbols, block);
 
             out.printf("return\n");
             out.printf(".end method\n");
@@ -136,6 +134,27 @@ public class Compiler {
             case StringLiteral(ParserRuleContext ctx1, String text) -> {
                 out.printf("ldc %s\n", text);
             }
+            case Print(ParserRuleContext ctx, List<Expression> arguments) -> {
+                String printlnArg = "";
+                var stringType = new ClassType("String");
+                Type exprType;
+                for (var expression : arguments) {
+                    out.printf("getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+                    generateCode(out, symbols, expression);
+                    exprType = typechecker.getType(symbols, expression);
+                    if (exprType.equals(PrimitiveType.Int))
+                        printlnArg = "I";
+                    else if (exprType.equals(PrimitiveType.Double))
+                        printlnArg = "D";
+                    else if (exprType.equals(PrimitiveType.Boolean))
+                        printlnArg = "Z";
+                    else if (exprType.equals(stringType))
+                        printlnArg = "Ljava/lang/String;";
+                    else
+                        throw new SyntaxException("Print argument Unimplemented");
+                    out.printf(String.format("invokevirtual java/io/PrintStream/println(%s)V\n", printlnArg));
+                }
+            }
             case VariableDeclarations(ParserRuleContext ctx, TypeNode type, List<DeclarationItem> items) -> {
                 for(var item : items){
                     generateCode(out, symbols, item);
@@ -163,27 +182,6 @@ public class Compiler {
                         out.printf("dstore %d\n", var.getIndex());
                     }
 
-                }
-            }
-            case Print(ParserRuleContext ctx, List<Expression> arguments) -> {
-                String printlnArg = "";
-                var stringType = new ClassType("String");
-                Type exprType;
-                for (var expression : arguments) {
-                    out.printf("getstatic java/lang/System/out Ljava/io/PrintStream;\n");
-                    generateCode(out, symbols, expression);
-                    exprType = typechecker.getType(symbols, expression);
-                    if (exprType.equals(PrimitiveType.Int))
-                        printlnArg = "I";
-                    else if (exprType.equals(PrimitiveType.Double))
-                        printlnArg = "D";
-                    else if (exprType.equals(PrimitiveType.Boolean))
-                        printlnArg = "Z";
-                    else if (exprType.equals(stringType))
-                        printlnArg = "Ljava/lang/String;";
-                    else
-                        throw new SyntaxException("Print argument Unimplemented");
-                    out.printf(String.format("invokevirtual java/io/PrintStream/println(%s)V\n", printlnArg));
                 }
             }
             case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
@@ -248,6 +246,29 @@ public class Compiler {
                 }
                 if (numberOfInts == 2)
                     out.println("d2i");
+            }
+            case Cast(ParserRuleContext ctx, TypeNode targetType, Expression expression) -> {
+                var expressionType = typechecker.getType(symbols, expression);
+                generateCode(out, symbols, expression);
+                var stringType = new ClassType("String");
+                var intType = new ClassType("Int");
+                var doubleType = new ClassType("Double");
+                var booleanType = new ClassType("Boolean");
+
+
+                if (expressionType.equals(intType) && targetType.equals(doubleType)) {
+                    out.println("i2d");
+                } else if (expressionType.equals(doubleType) && targetType.equals((intType))) {
+                    out.println("d2i");
+                } else if (expressionType.equals(doubleType) && targetType.equals((stringType))) {
+                    out.println("invokestatic java/lang/String/valueOf()");
+                } else if (expressionType.equals(intType) && targetType.equals((stringType))) {
+                    out.println("invokestatic java/lang/String/valueOf()");
+                } else if (expressionType.equals(booleanType) && targetType.equals((stringType))) {
+                    out.println("invokestatic java/lang/String/valueOf()");
+                } else if (expressionType.equals(stringType) && targetType.equals((stringType))) {
+                    out.println("invokestatic java/lang/String/valueOf()");
+                }
             }
             default -> {
                 throw new SyntaxException("Unimplemented");

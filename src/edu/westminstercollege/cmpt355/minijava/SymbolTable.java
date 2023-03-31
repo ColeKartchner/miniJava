@@ -7,7 +7,7 @@ import java.util.Optional;
 public class SymbolTable {
 
     private Map<String, Variable> variables = new HashMap<>();
-    private int variableIndex = 0;
+
     private int index = 0;
 
     public Variable registerVariable(String name) {
@@ -29,6 +29,6 @@ public class SymbolTable {
     }
 
     public int getVariableCount() {
-        return variableIndex;
+        return index;
     }
 }
