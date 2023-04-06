@@ -16,6 +16,11 @@
        ;
 
 
+
+    class
+    returns [methodBody n]
+       :
+    ;
     methodBody
     returns [Block n]
        : (stmts+=statement)* {

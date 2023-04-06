@@ -6,6 +6,46 @@ import java.util.Optional;
 
 public class SymbolTable {
 
+
+
+    /*
+    enum level{
+        Class, Method, Block
+        }
+
+     private Level level;
+     private SymbolTable parent;
+
+     public SymnbolTable(Level level){
+        this.level = level;
+     }
+
+     public Optional<Variable> findVariable(String name){
+
+        var maybeVar = Optional.ofNullable(variables.get(name));
+        var ancestor = parent;
+
+        while (maybeVar.isEmpty()){
+            if (ancestor != null) {
+                maybeVar = parent.findVariable(name);
+            }
+            else{
+                return Optional.empty();
+            }
+        }
+
+        public int allocate Variable (int size) {
+            // Only a Method-level Symbol Table can allocate a variable
+            if (level == Level.Method) {
+                // same code as before...
+            }
+            else if {
+                return parent.allocateVariable(size);
+            }
+        }
+
+     }
+     */
     private Map<String, Variable> variables = new HashMap<>();
 
     private int index = 0;

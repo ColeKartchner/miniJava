@@ -64,8 +64,18 @@ public class Typechecker {
                     var variable = symbols.findVariable(item.name());
                     // If the variable exists, set its type to the type of the VariableDeclarations
                     if (variable.isPresent()){
-                        var realVar = variable.get();
-                        realVar.setType(type.type());
+                        var presentVariable = variable.get();
+                        presentVariable.setType(type.type());
+                        int index = symbols.getVariableCount();
+
+                        if (presentVariable.getType() == PrimitiveType.Double){
+                            index += 1;
+                            symbols.allocateLocalVariable(2);
+                        }
+                        else {
+                            symbols.allocateLocalVariable(1);
+                        }
+                        presentVariable.setIndex(index);
                     }
                     // If the DeclarationItem has an initializer, check whether its type matches the type of the variable
                     if (item.children().size() != 0 ) {
@@ -81,6 +91,7 @@ public class Typechecker {
                             throw new SyntaxException(node, String.format("Cannot initialize variable: %s cannot be %s", item.name(), getType(symbols, item.initializer().get()).toString()));
                         }
                     }
+
                 }
             }
 

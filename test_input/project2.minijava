@@ -1,1 +1,1 @@
-print((double)5); // 5.0
+print(-0); // 0
