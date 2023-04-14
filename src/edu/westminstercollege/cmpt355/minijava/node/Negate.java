@@ -6,6 +6,7 @@ import java.util.List;
 
 public record Negate(ParserRuleContext ctx, Expression expression) implements Expression {
 
+
     @Override
     public List<? extends Node> children() {
         return List.of(expression);

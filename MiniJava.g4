@@ -1,4 +1,4 @@
-    grammar MiniJava;
+grammar MiniJava;
 
 
     @parser::header {
@@ -16,11 +16,6 @@
        ;
 
 
-
-    class
-    returns [methodBody n]
-       :
-    ;
     methodBody
     returns [Block n]
        : (stmts+=statement)* {
@@ -94,7 +89,7 @@
 
     expression
     returns [Expression n]
-       : print {
+       :  print {
            $n = $print.n;
        }
        | INT {
@@ -112,6 +107,22 @@
        | NAME {
            $n = new VariableAccess($ctx, $NAME.text);
        }
+       | e=expression '.' NAME {
+                      $n = new FieldAccess($ctx, $e.n, $NAME.text);
+                  }
+       | e=expression '.' NAME '(' (args+=expression (',' args+=expression)*)? ')' {
+             var methodArgs = new ArrayList<Expression>();
+              for (var arg : $args)
+                   methodArgs.add(arg.n);
+              $n = new MethodCall($ctx, $e.n, $NAME.text, methodArgs);
+              }
+                  | 'new' NAME '(' (args+=expression (',' args+=expression)*)? ')' {
+                      var constructorArgs = new ArrayList<Expression>();
+                      for (var arg : $args)
+                          constructorArgs.add(arg.n);
+                      $n = new ConstructorCall($ctx, $NAME.text, constructorArgs);
+                  }
+
        | '(' expression ')' {
            $n = $expression.n;
        }
@@ -138,12 +149,15 @@
        | <assoc=right> lhs=expression '=' rhs=expression {
            $n = new Assignment($ctx, $lhs.n, $rhs.n);
        }
+
+
+
        ;
 
 
     print
     returns [Print n]
-       : 'print' '(' (args+=expression (',' args+=expression)*)? ')' {
+       : '_print' '(' (args+=expression (',' args+=expression)*)? ')' {
            var arguments = new ArrayList<Expression>();
            for (var arg : $args)
                arguments.add(arg.n);
@@ -217,6 +231,7 @@
     BLOCK_COMMENT
        : '/*' .*? '*/' -> skip
        ;
+
 
 
     WHITESPACE

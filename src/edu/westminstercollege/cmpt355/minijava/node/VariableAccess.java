@@ -15,4 +15,8 @@ public record VariableAccess(ParserRuleContext ctx, String variableName) impleme
     public List<? extends Node> children() {
         return List.of();
     }
+
+    public String getvariableName() {
+        return variableName;
+    }
 }

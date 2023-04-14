@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 
 
 import java.util.List;
-
+import java.util.ArrayList;
 
 public class Typechecker {
 
@@ -243,6 +243,32 @@ public class Typechecker {
                     return varType;
                 }
             }
+            case FieldAccess(ParserRuleContext ignored, Expression expression, String fieldName) -> {
+                var classType = getType(symbols, expression);
+                var field = symbols.findField((ClassType) classType, fieldName);
+                if(field.isPresent()){
+                    return field.get().type();
+                }
+            }
+            case MethodCall(ParserRuleContext ignored, Expression expression, String methodName, List<Expression> arguments) -> {
+                List<Type> argumentTypes = new ArrayList<>();
+                var classType = getType(symbols, expression);
+                for (var argument : arguments)
+                    argumentTypes.add(getType(symbols, argument));
+                var method = symbols.findMethod((ClassType) classType, methodName, argumentTypes);
+                if (method.isPresent())
+                    return method.get().returnType();
+            }
+            case ConstructorCall(ParserRuleContext ctx, String className, List<Expression> arguments) -> {
+                List<Type> argumentTypes = new ArrayList<>();
+                for(var arg : arguments){
+                    argumentTypes.add(getType(symbols, arg));
+                }
+                var clazz = symbols.findJavaClass(className);
+                var constructor = symbols.findConstructor((ClassType)Reflect.typeFromClass(clazz.get()).get(), argumentTypes);
+                return constructor.get().containingType();
+            }
+
 
 
             case Assignment(ParserRuleContext ctx, Expression target, Expression value) -> {
@@ -277,8 +303,8 @@ public class Typechecker {
 
 
                     if (isNumericalOrString) {
-                        if (leftType instanceof ClassType && ((ClassType) leftType).className().equals("String") ||
-                                rightType instanceof ClassType && ((ClassType) rightType).className().equals("String")) {
+                        if (leftType instanceof ClassType && ((ClassType) leftType).getClassName().equals("String") ||
+                                rightType instanceof ClassType && ((ClassType) rightType).getClassName().equals("String")) {
                             return new ClassType("String");
                         } else {
                             if (hasDouble) {
@@ -290,7 +316,7 @@ public class Typechecker {
                     } else if (leftType.equals(VoidType.Instance) || rightType.equals(VoidType.Instance)) {
                         return VoidType.Instance;
                     } else if (leftType instanceof ClassType || rightType instanceof ClassType) {
-                        if (rightType instanceof ClassType && ((ClassType) rightType).className().equals("String")) {
+                        if (rightType instanceof ClassType && ((ClassType) rightType).getClassName().equals("String")) {
                             return rightType;
                         } else {
                             return leftType;
@@ -344,6 +370,7 @@ public class Typechecker {
             case Print(ParserRuleContext ctx, List<Expression> arguments) -> {
                 return VoidType.Instance;
             }
+            default -> throw new IllegalStateException("Unexpected value: " + expr);
         }
         return null;
     }

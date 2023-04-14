@@ -12,5 +12,8 @@ public sealed interface Expression extends Node
         PreIncrement,
         Print,
         StringLiteral,
-        VariableAccess {
+        VariableAccess,
+        ConstructorCall,
+        FieldAccess,
+        MethodCall{
 }
