@@ -138,9 +138,9 @@ public class Compiler {
                     out.printf("iconst_0\n");
             }
             case Print(ParserRuleContext ctx, List<Expression> arguments) -> {
-                String printlnArgType = "";
                 var stringType = new ClassType("String");
                 Type argumentType;
+                String printlnArgType = "";
 
                 for (var argument : arguments) {
                     out.printf("getstatic java/lang/System/out Ljava/io/PrintStream;\n");
@@ -308,8 +308,8 @@ public class Compiler {
             case PreIncrement(ParserRuleContext ctx, Expression target, String op) -> {
                 var variableAccess = (VariableAccess)target;
                 var variableSymbol = symbols.findVariable(variableAccess.variableName()).get();
-                var variableType = typechecker.getType(symbols, variableAccess);
                 var variableIndex = variableSymbol.getIndex();
+                var variableType = typechecker.getType(symbols, variableAccess);
 
                 if (variableType == PrimitiveType.Int) {
                     if (op.equals("++"))
@@ -334,8 +334,8 @@ public class Compiler {
             case PostIncrement(ParserRuleContext ctx, Expression target, String op) -> {
                 var variableAccess = (VariableAccess) target;
                 var variableSymbol = symbols.findVariable(variableAccess.variableName()).get();
-                var variableType = typechecker.getType(symbols, variableAccess);
                 var variableIndex = variableSymbol.getIndex();
+                var variableType = typechecker.getType(symbols, variableAccess);
 
                 if (variableType == PrimitiveType.Int) {
                     out.println(String.format("iload %d", variableIndex));
@@ -360,148 +360,133 @@ public class Compiler {
                     throw new RuntimeException(String.format("Post-increment cannot be %s", variableType));
                 }
             }
-            case FieldAccess(ParserRuleContext ignored, Expression expression, String fieldName) -> {
-                var stringType = new ClassType("String");
-                var classType = typechecker.getType(symbols, expression);
-                //find class path
-                String classPath = symbols.findJavaClass(((ClassType) classType).getClassName()).get().descriptorString();
-                classPath = classPath.substring(1, classPath.length()-1);
-                //find field in order to find its type
-                var field = symbols.findField((ClassType) classType, fieldName);
-                String printArg = "";
-                if(field.get().type().equals(PrimitiveType.Double))
-                    printArg = " D";
-                else if (field.get().type().equals(PrimitiveType.Int))
-                    printArg = " I";
-                else if (field.get().type().equals(PrimitiveType.Boolean))
-                    printArg = " Z";
-                else if (field.get().type().equals(VoidType.Instance))
-                    printArg = " V";
-                else if (field.get().type().equals(stringType))
-                    printArg = " Ljava/lang/String;";
+            case FieldAccess(ParserRuleContext ctx, Expression expr, String name) -> {
+                var fieldType = new ClassType("String");
+                var expressionType = typechecker.getType(symbols, expr);
+                String classDescriptor = symbols.findJavaClass(((ClassType) expressionType).getClassName()).get().descriptorString();
+                classDescriptor = classDescriptor.substring(1, classDescriptor.length()-1);
+                var fieldSymbol = symbols.findField((ClassType) expressionType, name);
+                String fieldDescriptor = "";
+                if(fieldSymbol.get().type().equals(PrimitiveType.Double))
+                    fieldDescriptor = " D";
+                else if (fieldSymbol.get().type().equals(PrimitiveType.Int))
+                    fieldDescriptor = " I";
+                else if (fieldSymbol.get().type().equals(PrimitiveType.Boolean))
+                    fieldDescriptor = " Z";
+                else if (fieldSymbol.get().type().equals(VoidType.Instance))
+                    fieldDescriptor = " V";
+                else if (fieldSymbol.get().type().equals(fieldType))
+                    fieldDescriptor = " Ljava/lang/String;";
                 else {
-                    String s = field.get().type().toString();
-                    String s1 = " L" + s.substring(10, s.length()-1) + ";";
-                    printArg = s1.replace('.','/');
+                    String fieldTypeString = fieldSymbol.get().type().toString();
+                    String fieldTypeDescriptor = " L" + fieldTypeString.substring(10, fieldTypeString.length()-1) + ";";
+                    fieldDescriptor = fieldTypeDescriptor.replace('.','/');
                 }
-                //is it a static or nonstatic field access
-                if(classType instanceof StaticType) {
-                    out.println("getstatic " + classPath + "." + fieldName + printArg);
+                if(expressionType instanceof StaticType) {
+                    out.println("Get static field " + classDescriptor + "." + name + fieldDescriptor);
                 }
                 else {
-                    generateCode(out, symbols, expression);
-                    out.println("getfield " + classPath + "/" + fieldName + printArg);
-                }
-            }
-            case MethodCall(ParserRuleContext ignored, Expression expr, String methodName, List<Expression> arguments) -> {
-                // find classType and classPath based of expr
-                var classType = typechecker.getType(symbols, expr);
-                String classPath = symbols.findJavaClass(((ClassType) classType).getClassName()).get().descriptorString();
-                classPath = classPath.substring(1, classPath.length()-1);
-                // find arguments Types in order to find the exact Method.
-                // from there we can find its return type.
-                List<Type> argumentTypes = new ArrayList<>();
-                for(var arg : arguments){
-                    //generateCode(out, symbols, arg);
-                    var argument = Reflect.typeFromClass(symbols.classFromType(typechecker.getType(symbols, arg)).get()).get();
-                    argumentTypes.add(argument);
-                }
-                // find java method, then use it to find return type
-                var method = symbols.findMethod((ClassType)classType, methodName, argumentTypes);
-                var returnType = method.get().returnType();
-                // convert returnType to assembly equivalent
-                var returnTypeChar = symbols.classFromType(returnType).get().toString();
-                switch (returnTypeChar) {
-                    case "double" -> returnTypeChar = "D";
-                    case "boolean" -> returnTypeChar = "Z";
-                    case "int" -> returnTypeChar = "I";
-                    case "void" -> returnTypeChar = "V";
-                    default -> {
-                        returnTypeChar = returnTypeChar.substring(6);
-                        returnTypeChar = returnTypeChar.replace('.','/');
-                        returnTypeChar = "L" + returnTypeChar + ";";
-                    }
-                }
-                if(classType instanceof StaticType) {
-                    for(var arg : arguments) {
-                        generateCode(out, symbols, arg);
-                    }
-                    // begin printing actual assembly for static method call
-                    out.print("invokestatic " + classPath + "/" + methodName + "(");
-                    // print every argumentType
-                    for (var type : argumentTypes) {
-                        var type1 = symbols.classFromType(type).get().toString();
-                        switch (type1) {
-                            case "double" -> out.print("D");
-                            case "boolean" -> out.print("Z");
-                            case "int" -> out.print("I");
-                            case "void" -> out.print("V");
-                            default -> {
-                                type1 = type1.substring(6);
-                                type1 = type1.replace('.','/');
-                                type1 = "L" + type1 + ";";
-                                out.print(type1);
-                            }
-                        }
-                    }
-                    // finish invokestatic line with returnType
-                    out.println(")" + returnTypeChar);
-                }
-                // if the method is nonstatic
-                else {
-                    // start with generatingCode for expr
                     generateCode(out, symbols, expr);
-                    for(var arg : arguments) {
+                    out.println("Get instance field " + classDescriptor + "/" + name + fieldDescriptor);
+                }
+            }
+
+            case MethodCall(ParserRuleContext ctx, Expression expr, String name, List<Expression> args) -> {
+                var type = typechecker.getType(symbols, expr);
+                String classDesc = symbols.findJavaClass(((ClassType) type).getClassName()).get().descriptorString();
+                classDesc = classDesc.substring(1, classDesc.length() - 1);
+                List<Type> argTypes = new ArrayList<>();
+                for (var arg : args) {
+                    var argType = Reflect.typeFromClass(symbols.classFromType(typechecker.getType(symbols, arg)).get()).get();
+                    argTypes.add(argType);
+                }
+                var method = symbols.findMethod((ClassType) type, name, argTypes);
+                var retType = method.get().returnType();
+                var retTypeStr = symbols.classFromType(retType).get().toString();
+                switch (retTypeStr) {
+                    case "double" -> retTypeStr = "D";
+                    case "boolean" -> retTypeStr = "Z";
+                    case "int" -> retTypeStr = "I";
+                    case "void" -> retTypeStr = "V";
+                    default -> {
+                        retTypeStr = retTypeStr.substring(6);
+                        retTypeStr = retTypeStr.replace('.', '/');
+                        retTypeStr = retTypeStr + ";";
+                    }
+                }
+                if (type instanceof StaticType) {
+                    for (var arg : args) {
                         generateCode(out, symbols, arg);
                     }
-                    out.print("invokevirtual " + classPath + "/" + methodName + "(");
-                    for (var type : argumentTypes) {
-                        var type1 = symbols.classFromType(type).get().toString();
-                        switch (type1) {
+                    out.print("Get static field " + classDesc + "/" + name);
+                    for (var argType : argTypes) {
+                        var argTypeStr = symbols.classFromType(argType).get().toString();
+                        switch (argTypeStr) {
                             case "double" -> out.print("D");
                             case "boolean" -> out.print("Z");
                             case "int" -> out.print("I");
                             case "void" -> out.print("V");
                             default -> {
-                                type1 = type1.substring(6);
-                                type1 = type1.replace('.','/');
-                                type1 = "L" + type1 + ";";
-                                out.print(type1);
+                                argTypeStr = argTypeStr.substring(6);
+                                argTypeStr = argTypeStr.replace('.', '/');
+                                argTypeStr = "L" + argTypeStr + ";";
+                                out.print(argTypeStr);
                             }
                         }
                     }
-                    // finish invokevirtual line with returnType
-                    out.println(")" + returnTypeChar);
-                }
-            }
-            case ConstructorCall(ParserRuleContext ignored, String className, List<Expression> arguments) -> {
-                var classPath = symbols.findJavaClass(className).get().descriptorString();
-                classPath = classPath.substring(1, classPath.length()-1);
-                out.println("new " + classPath);
-                out.println("dup");
-                List<String> argumentTypes = new ArrayList<>();
-                for (var arg : arguments) {
-                    generateCode(out, symbols, arg);
-                    var argument = symbols.classFromType(typechecker.getType(symbols, arg)).get().toString();
-                    switch (argument) {
-                        case "int" -> argument = "I";
-                        case "double" -> argument = "D";
-                        case "boolean" -> argument = "Z";
-                        case "void" -> argument = "V";
-                        default -> {
-                            argument = argument.substring(6);
-                            argument = argument.replace('.','/');
-                            argument = "L" + argument + ";";
+                    out.println(retTypeStr);
+                } else {
+                    generateCode(out, symbols, expr);
+                    for (var arg : args) {
+                        generateCode(out, symbols, arg);
+                    }
+                    out.print("Get non-static field " + classDesc + "/" + name);
+                    for (var argType : argTypes) {
+                        var argTypeStr = symbols.classFromType(argType).get().toString();
+                        switch (argTypeStr) {
+                            case "double" -> out.print("D");
+                            case "boolean" -> out.print("Z");
+                            case "int" -> out.print("I");
+                            case "void" -> out.print("V");
+                            default -> {
+                                argTypeStr = argTypeStr.substring(6);
+                                argTypeStr = argTypeStr.replace('.', '/');
+                                argTypeStr = "L" + argTypeStr + ";";
+                                out.print(argTypeStr);
+                            }
                         }
                     }
-                    argumentTypes.add(argument);
+                    out.println(retTypeStr);
                 }
-                out.print("invokenonvirtual " + classPath + ".<init>(");
-                for (String type : argumentTypes) {
-                    out.print(type);
-                }
-                out.println(")V");
             }
+            case ConstructorCall(ParserRuleContext ctx, String name, List<Expression> args) -> {
+                var classDescriptor = symbols.findJavaClass(name).get().descriptorString();
+                classDescriptor = classDescriptor.substring(1, classDescriptor.length() - 1);
+                List<String> parameterTypeDescriptors = new ArrayList<>();
+                for (var arg : args) {
+                    generateCode(out, symbols, arg);
+                    var parameterType = symbols.classFromType(typechecker.getType(symbols, arg)).get().toString();
+                    switch (parameterType) {
+                        case "int" -> parameterType = "I";
+                        case "double" -> parameterType = "D";
+                        case "boolean" -> parameterType = "Z";
+                        case "void" -> parameterType = "V";
+                        default -> {
+                            parameterType = parameterType.substring(6);
+                            parameterType = parameterType.replace('.', '/');
+                            parameterType = parameterType + ";";
+                        }
+                    }
+                    parameterTypeDescriptors.add(parameterType);
+                }
+                out.println("new " + classDescriptor);
+                out.println("dup");
+                out.print("Get non-static field " + classDescriptor);
+                for (String parameterTypeDescriptor : parameterTypeDescriptors) {
+                    out.print(parameterTypeDescriptor);
+                }
+            }
+
 
             default -> {
                 throw new SyntaxException("Unimplemented");

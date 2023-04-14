@@ -4,11 +4,11 @@ import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.util.List;
 
-public record FieldAccess(ParserRuleContext ctx, Expression expr, String fieldName) implements Expression {
+public record FieldAccess(ParserRuleContext ctx, Expression expr, String name) implements Expression {
 
     @Override
     public String getNodeDescription() {
-        return String.format("FieldAccess [Field: %s]", fieldName);
+        return String.format("FieldAccess [Field: %s]", name);
     }
 
     @Override

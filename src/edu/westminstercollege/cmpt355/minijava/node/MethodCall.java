@@ -3,10 +3,10 @@ import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.util.List;
 
-public record MethodCall(ParserRuleContext ctx, Expression expr, String methodName, List<Expression> args) implements Expression {
+public record MethodCall(ParserRuleContext ctx, Expression expr, String name, List<Expression> args) implements Expression {
     @Override
     public String getNodeDescription() {
-        return String.format("MethodCall [method: %s]", methodName);
+        return String.format("MethodCall [method: %s]", name);
     }
 
     @Override
