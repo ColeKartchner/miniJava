@@ -74,7 +74,12 @@ public class Compiler {
                 case VariableAccess(ParserRuleContext ctx, String name) -> {
                     var variableName = symbols.findVariable(name);
                     if (variableName.isEmpty())
-                        throw new SyntaxException(node, String.format("Variable '%s' is undefined. Please declare it before accessing it.", name));
+                        if (symbols.findClass(name).isPresent()){
+
+                        }
+                        else {
+                            throw new SyntaxException(node, String.format("Variable '%s' is undefined. Please declare it before accessing it.", name));
+                        }
                     //System.out.println(variableName.get().getType().toString() + " " + variableName.get().getName());
                 }
                 // This is if the variable is trying to be decalred twice
@@ -151,7 +156,7 @@ public class Compiler {
                         printlnArgType = "I";
                     else if (argumentType.equals(PrimitiveType.Double))
                         printlnArgType = "D";
-                    else if (argumentType.equals(stringType))
+                    else if (argumentType.equals(stringType) || argumentType.equals(new ClassType("java.lang.String")))
                         printlnArgType = "Ljava/lang/String;";
                     else if (argumentType.equals(PrimitiveType.Boolean))
                         printlnArgType = "Z";
@@ -235,21 +240,68 @@ public class Compiler {
             }
             case BinaryOp(ParserRuleContext ctx, Expression left, Expression right, String op) -> {
                 int intCount = 0;
-                generateCode(out, symbols, left);
+                var stringType = new ClassType("String");
+
+
 
                 Type leftType = typechecker.getType(symbols, left);
-                if (leftType.equals(PrimitiveType.Int)) {
-                    out.println("i2d");
-                    intCount++;
-                }
-
-                generateCode(out, symbols, right);
-
                 Type rightType = typechecker.getType(symbols, right);
-                if (rightType.equals(PrimitiveType.Int)) {
-                    out.println("i2d");
-                    intCount++;
+
+                if(leftType.equals(stringType) && op.equals("+") || rightType.equals(stringType) && op.equals("+")) {
+                    if (leftType.equals(stringType) && rightType.equals(stringType)) {
+                        generateCode(out, symbols, left);
+                        generateCode(out, symbols, right);
+                    } else if (leftType.equals(PrimitiveType.Int)) {
+                        generateCode(out, symbols, left);
+                        out.println("invokestatic java/lang/Integer.toString(I)Ljava/lang/String;");
+                        generateCode(out, symbols, right);
+                    } else if (rightType.equals(PrimitiveType.Int)) {
+                        generateCode(out, symbols, left);
+                        generateCode(out, symbols, right);
+                        out.println("invokestatic java/lang/Integer.toString(I)Ljava/lang/String;");
+                    } else if (leftType.equals(PrimitiveType.Double)) {
+                        generateCode(out, symbols, left);
+                        out.println("invokestatic java/lang/Double.toString(D)Ljava/lang/String;");
+                        generateCode(out, symbols, right);
+                    } else if (rightType.equals(PrimitiveType.Double)) {
+                        generateCode(out, symbols, left);
+                        generateCode(out, symbols, right);
+                        out.println("invokestatic java/lang/Double.toString(D)Ljava/lang/String;");
+                    } else if (leftType.equals(PrimitiveType.Boolean)) {
+                        generateCode(out, symbols, left);
+                        out.println("invokestatic java/lang/String.valueOf(Z)Ljava/lang/String;");
+                        generateCode(out, symbols, right);
+                    } else if (rightType.equals(PrimitiveType.Boolean)) {
+                        generateCode(out, symbols, left);
+                        generateCode(out, symbols, right);
+                        out.println("invokestatic java/lang/String.valueOf(Z)Ljava/lang/String;");
+                    } else if (leftType.equals(stringType) && !rightType.equals(stringType)) {
+                        generateCode(out, symbols, left);
+                        generateCode(out, symbols, right);
+                        out.println("invokestatic java/lang/String.valueOf(Ljava/lang/Object;)Ljava/lang/String;");
+                    }
                 }
+                else {
+
+                    if (leftType.equals(stringType)) {
+                        generateCode(out, symbols, left);
+                        generateCode(out, symbols, right);
+                    }
+
+                    generateCode(out, symbols, left);
+                    if (leftType.equals(PrimitiveType.Int)) {
+                        out.println("i2d");
+                        intCount++;
+                    }
+
+
+                    generateCode(out, symbols, right);
+                    if (rightType.equals(PrimitiveType.Int)) {
+                        out.println("i2d");
+                        intCount++;
+                    }
+                }
+
 
                 switch (op) {
                     case "+" -> out.println("dadd");
@@ -295,9 +347,11 @@ public class Compiler {
             case Negate(ParserRuleContext ctx, Expression expression) -> {
                 var type = typechecker.getType(symbols, expression);
                 if (type == PrimitiveType.Int) {
+                    generateCode(out,symbols, expression);
                     out.println("ineg");
                 }
                 else if (type == PrimitiveType.Double) {
+                    generateCode(out,symbols,expression);
                     out.println("dneg");
                 }
                 else {
@@ -312,19 +366,24 @@ public class Compiler {
                 var variableType = typechecker.getType(symbols, variableAccess);
 
                 if (variableType == PrimitiveType.Int) {
-                    if (op.equals("++"))
+                    if (op.equals("++")) {
                         out.println(String.format("iinc %d 1", variableIndex));
-                    else
+                    }
+                    else {
                         out.println(String.format("iinc %d -1", variableIndex));
-                    out.println(String.format("iload %d", variableIndex));
+                        out.println(String.format("iload %d", variableIndex));
+                    }
                 }
                 else if (variableType == PrimitiveType.Double) {
+                    generateCode(out, symbols, target);
                     out.println(String.format("dload %d", variableIndex));
                     out.println("dconst_1");
-                    if (op.equals("++"))
+                    if (op.equals("++")) {
                         out.println("dadd");
-                    else
+                    }
+                    else {
                         out.println("dsub");
+                    }
                     out.println("dup2");
                     out.println(String.format("dstore %d", variableIndex));
                 }
@@ -336,7 +395,7 @@ public class Compiler {
                 var variableSymbol = symbols.findVariable(variableAccess.variableName()).get();
                 var variableIndex = variableSymbol.getIndex();
                 var variableType = typechecker.getType(symbols, variableAccess);
-
+                generateCode(out, symbols, target);
                 if (variableType == PrimitiveType.Int) {
                     out.println(String.format("iload %d", variableIndex));
                     if (op.equals("++")) {
@@ -363,7 +422,7 @@ public class Compiler {
             case FieldAccess(ParserRuleContext ctx, Expression expr, String name) -> {
                 var fieldType = new ClassType("String");
                 var expressionType = typechecker.getType(symbols, expr);
-                String classDescriptor = symbols.findJavaClass(((ClassType) expressionType).getClassName()).get().descriptorString();
+                String classDescriptor = symbols.findClass(((ClassType) expressionType).getClassName()).get().descriptorString();
                 classDescriptor = classDescriptor.substring(1, classDescriptor.length()-1);
                 var fieldSymbol = symbols.findField((ClassType) expressionType, name);
                 String fieldDescriptor = "";
@@ -383,26 +442,26 @@ public class Compiler {
                     fieldDescriptor = fieldTypeDescriptor.replace('.','/');
                 }
                 if(expressionType instanceof StaticType) {
-                    out.println("Get static field " + classDescriptor + "." + name + fieldDescriptor);
+                    out.println("getstatic " + classDescriptor + "." + name + fieldDescriptor);
                 }
                 else {
                     generateCode(out, symbols, expr);
-                    out.println("Get instance field " + classDescriptor + "/" + name + fieldDescriptor);
+                    out.println("getfield " + classDescriptor + "/" + name + fieldDescriptor);
                 }
             }
 
             case MethodCall(ParserRuleContext ctx, Expression expr, String name, List<Expression> args) -> {
                 var type = typechecker.getType(symbols, expr);
-                String classDesc = symbols.findJavaClass(((ClassType) type).getClassName()).get().descriptorString();
+                String classDesc = symbols.findClass(((ClassType) type).getClassName()).get().descriptorString();
                 classDesc = classDesc.substring(1, classDesc.length() - 1);
                 List<Type> argTypes = new ArrayList<>();
                 for (var arg : args) {
-                    var argType = Reflect.typeFromClass(symbols.classFromType(typechecker.getType(symbols, arg)).get()).get();
+                    var argType = Reflect.typeFromClass(symbols.getClassFromType(typechecker.getType(symbols, arg)).get()).get();
                     argTypes.add(argType);
                 }
                 var method = symbols.findMethod((ClassType) type, name, argTypes);
                 var retType = method.get().returnType();
-                var retTypeStr = symbols.classFromType(retType).get().toString();
+                var retTypeStr = symbols.getClassFromType(retType).get().toString();
                 switch (retTypeStr) {
                     case "double" -> retTypeStr = "D";
                     case "boolean" -> retTypeStr = "Z";
@@ -418,9 +477,9 @@ public class Compiler {
                     for (var arg : args) {
                         generateCode(out, symbols, arg);
                     }
-                    out.print("Get static field " + classDesc + "/" + name);
+                    out.print("invokestatic" + classDesc + "/" + name + "(");
                     for (var argType : argTypes) {
-                        var argTypeStr = symbols.classFromType(argType).get().toString();
+                        var argTypeStr = symbols.getClassFromType(argType).get().toString();
                         switch (argTypeStr) {
                             case "double" -> out.print("D");
                             case "boolean" -> out.print("Z");
@@ -434,15 +493,15 @@ public class Compiler {
                             }
                         }
                     }
-                    out.println(retTypeStr);
+                    out.println(")" + retTypeStr);
                 } else {
                     generateCode(out, symbols, expr);
                     for (var arg : args) {
                         generateCode(out, symbols, arg);
                     }
-                    out.print("Get non-static field " + classDesc + "/" + name);
+                    out.print("invokevirtual field " + classDesc + "/" + name + "(");
                     for (var argType : argTypes) {
-                        var argTypeStr = symbols.classFromType(argType).get().toString();
+                        var argTypeStr = symbols.getClassFromType(argType).get().toString();
                         switch (argTypeStr) {
                             case "double" -> out.print("D");
                             case "boolean" -> out.print("Z");
@@ -456,16 +515,16 @@ public class Compiler {
                             }
                         }
                     }
-                    out.println(retTypeStr);
+                    out.println(")" + retTypeStr);
                 }
             }
             case ConstructorCall(ParserRuleContext ctx, String name, List<Expression> args) -> {
-                var classDescriptor = symbols.findJavaClass(name).get().descriptorString();
+                var classDescriptor = symbols.findClass(name).get().descriptorString();
                 classDescriptor = classDescriptor.substring(1, classDescriptor.length() - 1);
                 List<String> parameterTypeDescriptors = new ArrayList<>();
                 for (var arg : args) {
                     generateCode(out, symbols, arg);
-                    var parameterType = symbols.classFromType(typechecker.getType(symbols, arg)).get().toString();
+                    var parameterType = symbols.getClassFromType(typechecker.getType(symbols, arg)).get().toString();
                     switch (parameterType) {
                         case "int" -> parameterType = "I";
                         case "double" -> parameterType = "D";
@@ -479,12 +538,19 @@ public class Compiler {
                     }
                     parameterTypeDescriptors.add(parameterType);
                 }
+
                 out.println("new " + classDescriptor);
                 out.println("dup");
-                out.print("Get non-static field " + classDescriptor);
+                out.print("invokespecial " + classDescriptor + "<init>(");
                 for (String parameterTypeDescriptor : parameterTypeDescriptors) {
                     out.print(parameterTypeDescriptor);
                 }
+                out.println(")V");
+                out.print("invokevirtual " + classDescriptor + ".<init>(");
+                for (String parameterTypeDescriptor : parameterTypeDescriptors) {
+                    out.print(parameterTypeDescriptor);
+                }
+                out.println(")V");
             }
 
 

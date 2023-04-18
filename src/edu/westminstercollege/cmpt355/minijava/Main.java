@@ -34,7 +34,12 @@ public class Main {
             });
         }
         catch (SyntaxException ex) {
-            System.out.println("Error at line " + ex.getNode().ctx().start.getLine() + ": " +ex.getMessage());
+            if ( ex.getNode() == null){
+                System.out.println(ex.getMessage());
+            }
+            else {
+                System.out.println("Error at line " + ex.getNode().ctx().start.getLine() + ": " +ex.getMessage());
+            }
         }
 
         try {

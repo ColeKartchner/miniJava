@@ -242,6 +242,9 @@ public class Typechecker {
                     var varType = variable.get().getType();
                     return varType;
                 }
+                else {
+                    return new StaticType(variableName);
+                }
             }
             case FieldAccess(ParserRuleContext ignored, Expression expression, String fieldName) -> {
                 var classType = getType(symbols, expression);
@@ -264,7 +267,7 @@ public class Typechecker {
                 for(var arg : arguments){
                     argumentTypes.add(getType(symbols, arg));
                 }
-                var clazz = symbols.findJavaClass(className);
+                var clazz = symbols.findClass(className);
                 var constructor = symbols.findConstructor((ClassType)Reflect.typeFromClass(clazz.get()).get(), argumentTypes);
                 return constructor.get().containingType();
             }

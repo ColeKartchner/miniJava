@@ -7,6 +7,7 @@ sealed class ClassType implements Type permits StaticType {
         public  String className;
 
         public ClassType(String className) {
+                this.className = className;
         }
 
 
@@ -24,10 +25,16 @@ sealed class ClassType implements Type permits StaticType {
         }
 
 
-        public int getHashCode() {
-                return Objects.hash(className);
+        @Override
+        public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                ClassType classType = (ClassType) o;
+                return Objects.equals(className, classType.className);
         }
 
-
-
+        @Override
+        public int hashCode() {
+                return Objects.hash(className);
+        }
 }
