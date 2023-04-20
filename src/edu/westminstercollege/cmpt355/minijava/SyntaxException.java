@@ -1,9 +1,8 @@
 package edu.westminstercollege.cmpt355.minijava;
 
-import edu.westminstercollege.cmpt355.minijava.node.*;
+import edu.westminstercollege.cmpt355.minijava.node.Node;
 
 public class SyntaxException extends Exception {
-
 
     private Node node;
 
@@ -12,12 +11,11 @@ public class SyntaxException extends Exception {
     }
 
     public SyntaxException(Node node) {
-        super();
         this.node = node;
     }
 
     public SyntaxException(Node node, String message) {
-        super(message);
+        this(message);
         this.node = node;
     }
 

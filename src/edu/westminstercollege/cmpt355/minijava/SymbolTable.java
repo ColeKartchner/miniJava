@@ -1,60 +1,16 @@
 package edu.westminstercollege.cmpt355.minijava;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
+
 public class SymbolTable {
 
-
-
-    /*
-    enum level{
-        Class, Method, Block
-        }
-
-     private Level level;
-     private SymbolTable parent;
-
-     public SymnbolTable(Level level){
-        this.level = level;
-     }
-
-     public Optional<Variable> findVariable(String name){
-
-        var maybeVar = Optional.ofNullable(variables.get(name));
-        var ancestor = parent;
-
-        while (maybeVar.isEmpty()){
-            if (ancestor != null) {
-                maybeVar = parent.findVariable(name);
-            }
-            else{
-                return Optional.empty();
-            }
-        }
-
-        public int allocate Variable (int size) {
-            // Only a Method-level Symbol Table can allocate a variable
-            if (level == Level.Method) {
-                // same code as before...
-            }
-            else if {
-                return parent.allocateVariable(size);
-            }
-        }
-
-     }
-     */
     private Map<String, Variable> variables = new HashMap<>();
+    private int variableIndex = 0;
 
-    private int index = 0;
-
-    public Variable registerVariable(String name) {
+    public Variable registerVariable(String name, Type type) {
         Variable v = variables.get(name);
         if (v == null) {
-            v = new Variable(name, index);
+            v = new Variable(name, type);
             variables.put(name, v);
         }
 
@@ -66,88 +22,65 @@ public class SymbolTable {
     }
 
     public int allocateLocalVariable(int size) {
-        return index += size;
-    }
-
-    public int getVariableCount() {
+        int index = variableIndex;
+        variableIndex += size;
         return index;
     }
 
-
-    public Optional<Class<?>> findClass(String className) {
-        var clazz = Reflect.classForName(className);
-        if (clazz.isPresent()) {
-            return clazz;
-        } else {
-            clazz = Reflect.classForName(String.format("java.lang." + className));
-            if (clazz.isPresent()) {
-                return clazz;
-            } else {
-                clazz = Reflect.classForName(String.format("java.util." + className));
-                if (clazz.isPresent()) {
-                    return clazz;
-                } else {
-                    return Optional.empty();
-                }
-            }
-        }
+    public int getVariableCount() {
+        return variableIndex;
     }
 
-    public Optional<Class<?>> getClassFromType(Type type) {
-        if (type.equals(PrimitiveType.Int)) {
-            return Optional.of(Integer.TYPE);
-        } else if (type.equals(PrimitiveType.Double)) {
-            return Optional.of(Double.TYPE);
-        } else if (type.equals(PrimitiveType.Boolean)) {
-            return Optional.of(Boolean.TYPE);
-        } else if (type.equals(VoidType.Instance)) {
-            return Optional.of(Void.TYPE);
-        } else if (type instanceof ClassType clazz) {
-            return findClass(clazz.getClassName());
-        } else {
-            return Optional.empty();
+    public Optional<Class<?>> findJavaClass(String className) {
+        return Reflect.classForName(className)
+                .or(() -> Reflect.classForName("java.lang." + className))
+                .or(() -> Reflect.classForName("java.util." + className));
+    }
+
+    public Optional<Class<?>> classFromType(Type type) {
+        return switch (type) {
+            case PrimitiveType pt -> Optional.of(switch (pt) {
+                case Int -> Integer.TYPE;
+                case Double -> Double.TYPE;
+                case Boolean -> Boolean.TYPE;
+            });
+
+            case VoidType vt -> Optional.of(Void.TYPE);
+
+            case ClassType ct -> findJavaClass(ct.getClassName());
+        };
+    }
+
+    public Optional<List<Class<?>>> classesFromTypes(List<? extends Type> types) {
+        List<Class<?>> classes = new ArrayList<>(types.size());
+        for (var type : types) {
+            var maybeClass = classFromType(type);
+            if (maybeClass.isEmpty())
+                return Optional.empty();
+            classes.add(maybeClass.get());
         }
+        return Optional.of(classes);
     }
 
     public Optional<Field> findField(ClassType classType, String fieldName) {
-        var clazz = getClassFromType(classType);
-        if (clazz.isPresent()) {
-            return Reflect.findField(clazz.get(), fieldName);
-        } else {
-            return Optional.empty();
-        }
+        return classFromType(classType)
+                .flatMap(c -> Reflect.findField(c, fieldName));
     }
 
     public Optional<Method> findMethod(ClassType classType, String methodName, List<Type> parameterTypes) {
-        var clazz = getClassFromType(classType);
-        List<Class<?>> typeParams = new ArrayList<>();
-        for (var parameterType : parameterTypes) {
-            var clazzParameterType = getClassFromType(parameterType);
-            if (clazzParameterType.isPresent()) {
-                typeParams.add(clazzParameterType.get());
-            }
-        }
-        if (clazz.isPresent() && typeParams.size() == parameterTypes.size()) {
-            return Reflect.findMethod(clazz.get(), methodName, typeParams);
-        } else {
+        var maybeParameterClasses = classesFromTypes(parameterTypes);
+        if (maybeParameterClasses.isEmpty())
             return Optional.empty();
-        }
+        return classFromType(classType)
+                .flatMap(c -> Reflect.findMethod(c, methodName, maybeParameterClasses.get()));
     }
 
     public Optional<Method> findConstructor(ClassType classType, List<Type> parameterTypes) {
-        var clazz = getClassFromType(classType);
-        List<Class<?>> clazzParameterTypes = new ArrayList<>();
-        for (var parameterType : parameterTypes) {
-            var clazzParameterType = getClassFromType(parameterType);
-            if (clazzParameterType.isPresent()) {
-                clazzParameterTypes.add(clazzParameterType.get());
-            }
-        }
-        if (clazz.isPresent() && clazzParameterTypes.size() == parameterTypes.size()) {
-            return Reflect.findConstructor(clazz.get(), clazzParameterTypes);
-        } else {
+        var maybeParameterClasses = classesFromTypes(parameterTypes);
+        if (maybeParameterClasses.isEmpty())
             return Optional.empty();
-        }
+        return classFromType(classType)
+                .flatMap(c -> Reflect.findConstructor(c, maybeParameterClasses.get()));
     }
 
 }

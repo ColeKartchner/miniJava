@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class Typechecker {
 
-
+/*
     public void typecheck(SymbolTable symbols, Node node) throws SyntaxException {
         switch (node) {
             case Block(ParserRuleContext ctx, List<Statement> statements) -> {
@@ -373,10 +373,30 @@ public class Typechecker {
             case Print(ParserRuleContext ctx, List<Expression> arguments) -> {
                 return VoidType.Instance;
             }
+
+            case RelationalOp(ParserRuleContext ctx, Expression left, Expression right, String op) -> {
+                    var leftType = getType(symbols, left);
+                    var rightType = getType(symbols, right);
+                    boolean bothNumeric = isNumeric(leftType) && isNumberic(rightType);
+                    boolean bothBoolean = leftType == PrimitiveType.Boolean && rightType == PrimitiveType.Boolean;
+                    boolean bothObjects = leftType instanceof ClassType && rightType instanceof ClassType;
+                    SyntaxException ex = new SyntaxException(String.format("Incompatible types: %s %s %s", leftType, op, rightType))
+
+                if (List.of("<", "<=", ">", ">=").contains(op)) {
+                        if (!bothNumeric){
+                            throw ex;
+                        }
+                        else if (!(bothNumeric || bothBoolean || bothObjects)){
+                                throw ex;
+                            }
+                        }
+                }
+
             default -> throw new IllegalStateException("Unexpected value: " + expr);
         }
         return null;
     }
+    */
 }
 
 

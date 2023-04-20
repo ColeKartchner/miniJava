@@ -1,9 +1,10 @@
 package edu.westminstercollege.cmpt355.minijava;
 
+import java.lang.reflect.Executable;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.ArrayList;
 
 public class Reflect {
 
@@ -36,149 +37,97 @@ public class Reflect {
     public static Optional<Class<?>> classForName(String name) {
         try {
             return Optional.of(Class.forName(name));
-        } catch (ClassNotFoundException exception) {
+        } catch (ClassNotFoundException ex) {
             return Optional.empty();
         }
     }
 
     /**
      * Returns a Field object corresponding to the given field of the given class, or an empty Optional if there is no
-     * such field. The returned field, if there is one, will meet the following requirements:
-     * - belongs to the given class;
-     * - is public;
-     * - has the given name;
-     * - its ClassType will be an instance of StaticType if the field is static;
-     * - has a type that is a miniJava type (e.g. not long, float, etc.).
+     * such field.
      */
     public static Optional<Field> findField(Class<?> clazz, String name) {
-        // Use clazz.getField(String fieldName) to find the field with the given name, then check that its type is
-        // compatible with miniJava (you can use typeFromClass() to map the Class object to a Type one, giving an
-        // empty Optional if it is not representable in miniJava).
-
-        java.lang.reflect.Field field;
-
         try {
-            field = clazz.getField(name);
-        } catch (NoSuchFieldException nsf) {
-            return Optional.empty();
-        }
-
-        // Note that clazz.getField(String fieldName) returns a java.lang.reflect.Field object, whereas this method
-        // returns a *miniJava* Field object.
-
-        // Use getModifiers() on the java.lang.reflect.Field object to check whether it is static.
-
-
-        var fieldType = typeFromClass(field.getType());
-        if (fieldType.isPresent()) {
-            edu.westminstercollege.cmpt355.minijava.Field newField;
-            if (Modifier.isStatic(field.getModifiers())) {
-                newField = new Field(new StaticType(clazz.getName()), name, fieldType.get());
+            var jField = clazz.getField(name);
+            var fieldType = typeFromClass(jField.getType());
+            if (fieldType.isPresent()) {
+                if ((jField.getModifiers() & Modifier.STATIC) == 0)
+                    return Optional.of(new Field(new ClassType(clazz.getName()), name, fieldType.get()));
+                else
+                    return Optional.of(new Field(new StaticType(clazz.getName()), name, fieldType.get()));
             }
-            else {
-                newField = new Field(new ClassType(clazz.getName()), name, fieldType.get());
-            }
-            return Optional.of(newField);
+        } catch (NoSuchFieldException ex) {
+            // do nothing
         }
 
-        else {
-            return Optional.empty();
-        }
+        return Optional.empty();
     }
+
     /**
      * Returns a Method object corresponding to the relevant method of the given class, or an empty Optional if there is
      * no such method. The returned method, if there is one, will meet the following requirements:
      * - belongs to the given class;
-     * - is public;
      * - has the given name;
-     * - has parameters whose types exactly correspond to those given;
-     * - its ClassType will be an instance of StaticType if the method is static;
-     * - all relevant types (return type, parameter types) are miniJava types (e.g. not long, float, etc.).
+     * - has the parameters whose types exactly correspond to those given;
+     * - 
+     * @param clazz
+     * @param name
+     * @param parameterTypes
+     * @return
      */
     public static Optional<Method> findMethod(Class<?> clazz, String name, List<Class<?>> parameterTypes) {
-        // Use clazz.getMethods() to find all the public methods of the class, then find one whose parameter types
-        // exactly match the given parameter types.
+        var methods = Arrays.stream(clazz.getMethods())
+                .filter(m -> m.getName().equals(name))
+                .filter(m -> Reflect.typeFromClass(m.getReturnType()).isPresent())
+                .toList();
+        var maybeMethod = filterCallable(methods, parameterTypes);
 
-        java.lang.reflect.Method[] methods = clazz.getMethods();
-
-        // Any method whose parameters don't match the parameter or are not representable in miniJava should be
-        // excluded. (You can use typeFromClass() to map the Class objects to Type ones, giving an empty Optional if
-        // they are not representable in miniJava.)
-
-        // Note that this method returns a *miniJava* Method object, not a java.lang.reflect.Method! This means that
-        // the return/parameter types will need to be mapped to Types.
-
-
-        for (var method : methods) {
-            var methodParameterTypes = method.getParameterTypes();
-            if (method.getName().equals(name) && methodParameterTypes.length == parameterTypes.size()) {
-                List<Type> matchingParameters = new ArrayList<>();
-                int params = 0;
-                for (var parameterType : parameterTypes) {
-                    if (typeFromClass(parameterType).isPresent() && methodParameterTypes[params].equals(parameterType))
-                        matchingParameters.add(typeFromClass(parameterType).get());
-                    params++;
-                }
-                if (matchingParameters.size() == methodParameterTypes.length &&
-                        typeFromClass(method.getReturnType()).isPresent()) {
-                    var returnType = typeFromClass(method.getReturnType()).get();
-                    edu.westminstercollege.cmpt355.minijava.Method foundMethod;
-                    if (Modifier.isStatic(method.getModifiers()))
-                        foundMethod = new Method(new StaticType(clazz.getName()), name, matchingParameters, returnType);
-                    else
-                        foundMethod = new Method(new ClassType(clazz.getName()), name, matchingParameters, returnType);
-                    return Optional.of(foundMethod);
-                }
-            }
-        }
-        return Optional.empty();
+        if (maybeMethod.isPresent()) {
+            var m = maybeMethod.get();
+            var returnType = Reflect.typeFromClass(m.getReturnType()).get();
+            var paramTypes = Arrays.stream(m.getParameterTypes())
+                    .map(Reflect::typeFromClass)
+                    .map(Optional::get)
+                    .toList();
+            if ((m.getModifiers() & Modifier.STATIC) == 0)
+                return Optional.of(new Method(new ClassType(clazz.getName()), m.getName(), paramTypes, returnType));
+            else
+                return Optional.of(new Method(new StaticType(clazz.getName()), m.getName(), paramTypes, returnType));
+        } else
+            return Optional.empty();
     }
 
-    /**
-     * Returns a Method object corresponding to the relevant constructor of the given class, or an empty Optional if
-     * there is no such method. The returned method, if there is one, will meet the following requirements:
-     * - belongs to the given class;
-     * - is public;
-     * - is named "<init>";
-     * - has parameters whose types exactly correspond to those given;
-     * - has void return type;
-     * - its ClassType is *not* a StaticType;
-     * - all parameter types are miniJava types (e.g. not long, float, etc.).
-     */
     public static Optional<Method> findConstructor(Class<?> clazz, List<Class<?>> parameterTypes) {
-        // Use clazz.getConstructors() to find all the public constructors of the class, then find one whose parameter
-        // types exactly match the given parameter types.
+        var ctors = Arrays.asList(clazz.getConstructors());
+        var maybeCtor = filterCallable(ctors, parameterTypes);
 
-        java.lang.reflect.Constructor<?>[] constructors = clazz.getConstructors();
+        if (maybeCtor.isPresent()) {
+            var c = maybeCtor.get();
+            var paramTypes = Arrays.stream(c.getParameterTypes())
+                    .map(Reflect::typeFromClass)
+                    .map(Optional::get)
+                    .toList();
+            return Optional.of(new Method(new ClassType(clazz.getName()), "<init>", paramTypes, VoidType.Instance));
+        } else
+            return Optional.empty();
+    }
 
-        // Any constructor whose parameters don't match the parameter or are not representable in miniJava should be
-        // excluded. (You can use typeFromClass() to map the Class objects to Type ones, giving an empty Optional if
-        // they are not representable in miniJava.)
+    private static <E extends Executable> Optional<E> filterCallable(Iterable<E> candidates, List<Class<?>> parameterTypes) {
+        candidateLoop:
+        for (var candidate : candidates) {
+            if (candidate.getParameterCount() != parameterTypes.size())
+                continue candidateLoop;
 
-        for (var constructor : constructors) {
-            var constParamTypes = constructor.getParameterTypes();
-            if (constParamTypes.length == parameterTypes.size()) {
-                int params = 0;
-                List<Type> matchingParameters = new ArrayList<>();
-                for (var parameterType : parameterTypes) {
-                    if (typeFromClass(parameterType).isPresent() && constParamTypes[params].equals(parameterType))
-                        matchingParameters.add(typeFromClass(parameterType).get());
-                    params++;
-                }
-
-        // This method will be very similar to findMethod(). The main differences are that
-        // - the method name is always "<init>";
-        // - the return type is always void;
-        // - the class type is never a StaticType.
-
-                if (matchingParameters.size() == constParamTypes.length) {
-                    edu.westminstercollege.cmpt355.minijava.Method Constructor;
-                    Constructor = new Method(
-                            new ClassType(clazz.getName()), "<init>", matchingParameters, VoidType.Instance);
-                    return Optional.of(Constructor);
-                }
+            var candidateParamTypes = candidate.getParameterTypes();
+            for (int i = 0; i < parameterTypes.size(); ++i) {
+                if (!parameterTypes.get(i).equals(candidateParamTypes[i]))
+                    continue candidateLoop;
             }
+
+            return Optional.of(candidate);
         }
+
         return Optional.empty();
     }
+
 }

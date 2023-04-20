@@ -1,41 +1,34 @@
 package edu.westminstercollege.cmpt355.minijava;
 
-import edu.westminstercollege.cmpt355.minijava.node.Node;
-
 public class Variable {
-    private Type type;
 
-    public void setType(Type type) {
-        this.type = type;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public String toString() {
-        return name + " " +type.toString();
-    }
     private String name;
+    private Type type;
     private int index;
 
-    public Variable(String name, int index) {
-        this.type = type;
+    public Variable(String name, Type type) {
         this.name = name;
-        this.index = index;
+        this.type = type;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setIndex(int index) {
-        this.index = index;
+    public Type getType() {
+        return type;
     }
 
     public int getIndex() {
         return index;
     }
 
-}
+    public void setIndex(int index) {
+        this.index = index;
+    }
 
+    @Override
+    public String toString() {
+        return String.format("Variable [name=%s, type=%s]", name, type);
+    }
+}
