@@ -44,6 +44,21 @@ grammar MiniJava;
        | expression ';' {
            $n = new ExpressionStatement($ctx, $expression.n);
        }
+       | 'return' expression ';' {
+            $n = new Return($ctx, Optional.of($expression.n));
+       }
+       | 'return' ';' {
+                   $n = new Return($ctx, Optional.empty());
+       }
+       | 'while' '(' cond=expression ')' body=statement {
+                $n = new While($crx, $cond.n, $body.n);
+       }
+       // what goes in between the (  )?
+              //       - expression
+              //       - conditions like "i < 5"
+              //       - variable name
+              //       - method call
+              //       -
        ;
 
 
@@ -145,6 +160,9 @@ grammar MiniJava;
        }
        | l=expression op=('+' | '-') r=expression {
            $n = new BinaryOp($ctx, $l.n, $r.n, $op.text);
+       }
+       | l=expression op=('<' | '<=' | '>' | '>=') r=expression {
+           $n = new ($ctx, $l.n, $r.n, $op.text);
        }
        | <assoc=right> lhs=expression '=' rhs=expression {
            $n = new Assignment($ctx, $lhs.n, $rhs.n);

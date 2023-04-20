@@ -15,5 +15,6 @@ public sealed interface Expression extends Node
         VariableAccess,
         ConstructorCall,
         FieldAccess,
-        MethodCall{
+        MethodCall,
+        RelationalOp{
 }
