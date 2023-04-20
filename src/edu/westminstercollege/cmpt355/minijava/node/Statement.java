@@ -4,5 +4,6 @@ public sealed interface Statement extends Node
     permits Block,
         VariableDeclarations,
         EmptyStatement,
-        ExpressionStatement {
+        ExpressionStatement,
+        Return{
 }

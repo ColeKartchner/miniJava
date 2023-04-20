@@ -18,7 +18,8 @@ public sealed interface Expression extends Node
         PostIncrement,
         PreIncrement,
         Print,
-        StringLiteral {
+        StringLiteral,
+        This{
 
     Type getType(SymbolTable symbols);
 }
