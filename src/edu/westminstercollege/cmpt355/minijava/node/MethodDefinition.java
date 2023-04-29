@@ -32,35 +32,35 @@ public record MethodDefinition(ParserRuleContext ctx, TypeNode returnType, Strin
 
     @Override
     public void generateCode(PrintWriter out, SymbolTable symbols) {
-        StringBuilder param_string = new StringBuilder();
+        StringBuilder paramameters = new StringBuilder();
         for (var param : parameters) {
             if (param.type().type() == PrimitiveType.Int)
-                param_string.append("I");
+                paramameters.append("I");
             else if (param.type().type() == PrimitiveType.Double)
-                param_string.append("D");
+                paramameters.append("D");
             else if (param.type().type() == PrimitiveType.Boolean)
-                param_string.append("Z");
+                paramameters.append("Z");
             else {
-                param_string.append("L");
-                param_string.append(symbols.classFromType(param.type().type()).orElseThrow().getName().replace('.', '/'));
-                param_string.append(";");
+                paramameters.append("L");
+                paramameters.append(symbols.classFromType(param.type().type()).orElseThrow().getName().replace('.', '/'));
+                paramameters.append(";");
             }
         }
 
-        String return_type_string;
+        String returm;
         if (returnType.type() == PrimitiveType.Int)
-            return_type_string = "I";
+            returm = "I";
         else if (returnType.type() == PrimitiveType.Double)
-            return_type_string = "D";
+            returm = "D";
         else if (returnType.type() == PrimitiveType.Boolean)
-            return_type_string = "Z";
+            returm = "Z";
         else if (returnType.type() instanceof VoidType)
-            return_type_string = "V";
+            returm = "V";
         else
-            return_type_string = "L" + symbols.classFromType(returnType.type()).orElseThrow().getName().replace('.', '/') + ";";
+            returm = "L" + symbols.classFromType(returnType.type()).orElseThrow().getName().replace('.', '/') + ";";
 
 
-        out.printf(".method public %s(%s)%s\n", name, param_string, return_type_string);
+        out.printf(".method public %s(%s)%s\n", name, paramameters, returm);
         out.println(".limit stack 100");
         out.printf(".limit locals %d\n", parameters.size() * 10 + 2);
 

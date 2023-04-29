@@ -42,13 +42,13 @@ public record Return(ParserRuleContext ctx, Optional<Expression> value) implemen
             return;
         }
 
-        Type value_type = value.orElseThrow().getType(symbols);
+        Type returm = value.orElseThrow().getType(symbols);
 
-        if (value_type == PrimitiveType.Int ||value_type == PrimitiveType.Boolean)
+        if (returm == PrimitiveType.Int ||returm == PrimitiveType.Boolean)
             out.println("ireturn");
-        else if (value_type == PrimitiveType.Double)
+        else if (returm == PrimitiveType.Double)
             out.println("dreturn");
-        else if (value_type instanceof ClassType)
+        else if (returm instanceof ClassType)
             out.println("areturn");
 
     }

@@ -24,9 +24,9 @@ public record Parameter(ParserRuleContext ctx, TypeNode type, String name) imple
 
     @Override
     public void typecheck(SymbolTable symbols) throws SyntaxException {
-        Variable parameterVar = symbols.findVariable(name).get();
-        parameterVar.setType(type.type());
-        parameterVar.setIndex(symbols.getVariableCount());
+        Variable parameter = symbols.findVariable(name).get();
+        parameter.setType(type.type());
+        parameter.setIndex(symbols.getVariableCount());
         if (type.type().equals(PrimitiveType.Double)) {
             symbols.allocateLocalVariable(2);
         } else {
