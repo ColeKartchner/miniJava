@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Main {
@@ -21,9 +22,16 @@ public class Main {
         var program = parser.goal().n;
         AST.print(program);
 
-        var compiler = new Compiler(program, CLASS_NAME);
+
         try {
+            var compiledClassPath = Path.of(String.format("out/test_compiled/%s.class", CLASS_NAME));
+            Files.deleteIfExists(compiledClassPath);
+            var compiler = new Compiler(program, CLASS_NAME);
             compiler.compile(Path.of("test_output"));
+            jasmin.Main.main(new String[] {
+                    "-d", "out/test_compiled",
+                    String.format("test_output/%s.j", CLASS_NAME)
+            });
         } catch (SyntaxException ex) {
             if (ex.getNode() != null)
                 System.err.printf("At line %d: %s\n", ex.getNode().ctx().start.getLine(), ex.getMessage());

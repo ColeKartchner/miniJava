@@ -19,7 +19,8 @@ public sealed interface Expression extends Node
         PreIncrement,
         Print,
         StringLiteral,
-        This{
+        This,
+        RelationalOp {
 
     Type getType(SymbolTable symbols);
 }

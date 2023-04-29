@@ -5,5 +5,8 @@ public sealed interface Statement extends Node
         VariableDeclarations,
         EmptyStatement,
         ExpressionStatement,
-        Return{
+        Return,
+        While,
+        If,
+        IfElse{
 }

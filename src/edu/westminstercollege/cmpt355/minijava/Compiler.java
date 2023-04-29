@@ -14,14 +14,15 @@ import java.util.Optional;
 public class Compiler {
 
     // Commented out until we have our AST nodes defined...
-    private SymbolTable symbols = new SymbolTable();
+    private SymbolTable symbols = new SymbolTable(SymbolTable.Level.Class);
     private PrintWriter out;
-    private final Block program;
+    private final ClassNode classNode;
     private final String className;
 
-    public Compiler(Block program, String className) {
-        this.program = program;
+    public Compiler(ClassNode classNode, String className) {
+        this.classNode = classNode;
         this.className = className;
+        symbols.setCompilingClassName(className);
     }
 
     public SymbolTable getSymbols() {
@@ -33,8 +34,8 @@ public class Compiler {
         try (var out = new PrintWriter(Files.newBufferedWriter(asmFilePath))) {
             this.out = out;
             symbols.allocateLocalVariable(1);
-            resolveSymbols(program);
-            program.typecheck(symbols);
+            resolveSymbols(this.classNode, symbols);
+            classNode.typecheck(symbols);
 
             out.printf(".class public %s\n", className);
             out.printf(".super java/lang/Object\n");
@@ -60,7 +61,7 @@ public class Compiler {
             out.printf(".limit locals %d\n", symbols.getVariableCount());
             out.println();
 
-            program.generateCode(out, symbols);
+            // program.generateCode(out, symbols);
             // Generate code for program here 🙂
             // Generate code for each statement of the program
 //            for (var statement : program.statements())
@@ -76,30 +77,34 @@ public class Compiler {
      // Make sure that all symbols (in this case, names of variables) make sense,
      // i.e. we should not be using the value of a variable before we have assigned
      // to it (Eval does not have declarations).
-     private void resolveSymbols(Block program) throws SyntaxException {
-        AST.postOrder(program, node -> {
+     private void resolveSymbols(Node node, SymbolTable symbols) throws SyntaxException {
             switch (node) {
-                /*case VariableDeclarations(ParserRuleContext ctx, TypeNode typeNode, List<DeclarationItem> items) -> {
-                    for (var item : items) {
-                        if (symbols.findVariable(item.className()).isPresent())
-                            throw new SyntaxException(node, String.format("Multiple declaration of variable %s!", item.className()));
-                        else
-                            symbols.registerVariable(item.className(), typeNode.type());
+                case VariableDeclarations(ParserRuleContext ctx, TypeNode typeNode, List<DeclarationItem> items) -> {
+                    for (var child : node.children()) {
+                        resolveSymbols(child, symbols);
+                        VariableAccess name = null;
+                        if (child instanceof VariableDeclarations)
+                            symbols.registerVariable(name.variableName(),typeNode.type());
                     }
-                }*/
-
+                }
+/*
                 case DeclarationItem(ParserRuleContext ctx, String name, Optional<Expression> initializer) -> {
                     if (symbols.findVariable(name).isPresent())
                         throw new SyntaxException(node, String.format("Multiple declaration of variable %s!", name));
                     else
-                        symbols.registerVariable(name, ((MiniJavaParser.DeclarationContext)ctx.parent).n.type().type());
+                        symbols.registerVariable(initializer.name(), type.type());
                 }
 
+ */
                 case VariableAccess(ParserRuleContext ctx, String name) -> {
+                    if (symbols.findVariable(name).isPresent())
+                        return;
                     if (symbols.findVariable(name).isEmpty() && symbols.findJavaClass(name).isEmpty())
                         throw new SyntaxException(node, String.format("Use of undeclared variable %s!", name));
                     // For debugging purposes:
                     //System.out.printf("Access to variable %s\n", symbols.findVariable(className).get());
+                    for (var child : node.children())
+                        resolveSymbols(child, symbols);
                 }
 
                 case Assignment(ParserRuleContext ctx, LValue lhs, Expression rhs) -> {
@@ -107,6 +112,9 @@ public class Compiler {
                         throw new SyntaxException(node, "Attempt to assign to something that is not a variable!");
                     else if (symbols.findVariable(va.variableName()).isEmpty())
                         throw new SyntaxException(node, String.format("Use of undeclared variable %s!", va.variableName()));
+
+                    for (var child : node.children())
+                        resolveSymbols(child, symbols);
                 }
                     /*
                 case Assignment(String className, Expression e) -> symbols.registerVariable(className);
@@ -115,9 +123,48 @@ public class Compiler {
                         // No variable found!
                         throw new SyntaxException(String.format("Variable used before assignment: %s", className));
                 }*/
+                case FieldDefinition(ParserRuleContext ctx, TypeNode type, String name, Optional<Expression> expr) -> {
+                    if (symbols.findField(new ClassType(className), name).isPresent()) {
+                        throw new SyntaxException(node, String.format("Field %s is already in use", name));
+                    }
+                    symbols.registerField(name, type.type());
+
+                    for (Node child : node.children())
+                        resolveSymbols(child, symbols);
+                }
+                case MethodDefinition(ParserRuleContext ctx, TypeNode returnType, String name, List<Parameter> parameters, Block block, SymbolTable symbolTable) -> {
+                    List<Type> paramTypes = new ArrayList<>();
+                    for(Parameter parameter:parameters)
+                        paramTypes.add(parameter.type().type());
+
+                    symbols.registerMethod(name, paramTypes, returnType.type());
+                    symbolTable.setParent(symbols);
+
+                    for (Node child : node.children())
+                        resolveSymbols(child, symbolTable);
+                }
+                case MainMethodDefinition(ParserRuleContext ctx, Block block, SymbolTable symbolTable) -> {
+                    symbols.registerMethod("Main", List.of(), VoidType.Instance);
+                    symbolTable.setParent(symbols);
+
+                    for (Node child : node.children())
+                        resolveSymbols(child, symbolTable);
+                }
+                case Parameter(ParserRuleContext ctx, TypeNode type, String name) -> {
+                    symbols.registerVariable(name, type.type());
+
+                    for (var child : node.children())
+                        resolveSymbols(child, symbols);
+                }
+                case Block(ParserRuleContext ctx, List<Statement> statements, SymbolTable symbolTable) -> {
+                    symbolTable.setParent(symbols);
+
+                    for (var child : node.children())
+                        resolveSymbols(child, symbolTable);
+                }
                 default -> {}
             }
-        });
+
     }
 
     /*

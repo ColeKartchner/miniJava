@@ -4,18 +4,21 @@ import edu.westminstercollege.cmpt355.minijava.SyntaxException;
 import org.antlr.v4.runtime.ParserRuleContext;
 import java.util.List;
 
-public record PackageImport(ParserRuleContext ctx, List<String> importParts) implements Import {
+public record PackageImport(ParserRuleContext ctx, String path) implements Import {
     @Override
     public ParserRuleContext ctx() {
         return ctx;
     }
     @Override
     public List<? extends Node> children() {
-        return null;
+        return List.of();
     }
 
     @Override
     public void typecheck(SymbolTable symbols) throws SyntaxException {
-
+        symbols.importPackage(path);
+    }
+    public String getNodeDescription() {
+        return String.format("ClassImport: [%s]", path);
     }
 }
